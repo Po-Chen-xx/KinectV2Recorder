@@ -45,10 +45,10 @@
 class CKinectV2Recorder
 {
     static const int        cMinTimestampDifferenceForFrameReSync = 30; // The minimum timestamp difference between depth and color (in ms) at which they are considered un-synchronized.
-    static const int        cDepthWidth     = 512;
-    static const int        cDepthHeight    = 424;
     static const int        cInfraredWidth  = 512;
     static const int        cInfraredHeight = 424;
+    static const int        cDepthWidth     = 512;
+    static const int        cDepthHeight    = 424;
     static const int        cColorWidth     = 1920;
     static const int        cColorHeight    = 1080;
 public:
@@ -105,17 +105,17 @@ private:
     IKinectSensor*          m_pKinectSensor;
 
     // Frame reader
-    IDepthFrameReader*      m_pDepthFrameReader;
     IInfraredFrameReader*   m_pInfraredFrameReader;
+    IDepthFrameReader*      m_pDepthFrameReader;
     IColorFrameReader*      m_pColorFrameReader;
 
     // Direct2D
     ID2D1Factory*           m_pD2DFactory;
-    ImageRenderer*          m_pDrawDepth;
     ImageRenderer*          m_pDrawInfrared;
+    ImageRenderer*          m_pDrawDepth;
     ImageRenderer*          m_pDrawColor;
-    RGBQUAD*                m_pDepthRGBX;
     RGBQUAD*                m_pInfraredRGBX;
+    RGBQUAD*                m_pDepthRGBX;
     RGBQUAD*                m_pColorRGBX;
 
     // Index
@@ -154,6 +154,15 @@ private:
     HRESULT                 InitializeDefaultSensor();
 
     /// <summary>
+    /// Handle new infrared data
+    /// <param name="nTime">timestamp of frame</param>
+    /// <param name="pBuffer">pointer to frame data</param>
+    /// <param name="nWidth">width (in pixels) of input image data</param>
+    /// <param name="nHeight">height (in pixels) of input image data</param>
+    /// </summary>
+    void                    ProcessInfrared(INT64 nTime, const UINT16* pBuffer, int nHeight, int nWidth);
+
+    /// <summary>
     /// Handle new depth data
     /// <param name="nTime">timestamp of frame</param>
     /// <param name="pBuffer">pointer to frame data</param>
@@ -163,15 +172,6 @@ private:
     /// <param name="nMaxDepth">maximum reliable depth</param>
     /// </summary>
     void                    ProcessDepth(INT64 nTime, const UINT16* pBuffer, int nHeight, int nWidth, USHORT nMinDepth, USHORT nMaxDepth);
-
-    /// <summary>
-    /// Handle new infrared data
-    /// <param name="nTime">timestamp of frame</param>
-    /// <param name="pBuffer">pointer to frame data</param>
-    /// <param name="nWidth">width (in pixels) of input image data</param>
-    /// <param name="nHeight">height (in pixels) of input image data</param>
-    /// </summary>
-    void                    ProcessInfrared(INT64 nTime, const UINT16* pBuffer, int nHeight, int nWidth);
 
     /// <summary>
     /// Handle new color data

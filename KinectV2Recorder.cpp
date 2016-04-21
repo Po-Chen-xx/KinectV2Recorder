@@ -214,17 +214,66 @@ void CKinectV2Recorder::Update()
         return;
     }
     
-    INT64 currentDepthFrameTime = 0;
     INT64 currentInfraredFrameTime = 0;
+    INT64 currentDepthFrameTime = 0;
     INT64 currentColorFrameTime = 0;
     m_bColorSynchronized = false;   // assume we are not synchronized to start with
 
-    // Get a depth frame from Kinect
+    IInfraredFrame* pInfraredFrame = NULL;
     IDepthFrame* pDepthFrame = NULL;
+    IColorFrame* pColorFrame = NULL;
 
-    HRESULT hr = m_pDepthFrameReader->AcquireLatestFrame(&pDepthFrame);
+    
+    // Get an infrared frame from Kinect
+    HRESULT hrInfrared = m_pInfraredFrameReader->AcquireLatestFrame(&pInfraredFrame);
+    // Get a depth frame from Kinect
+    HRESULT hrDepth = m_pDepthFrameReader->AcquireLatestFrame(&pDepthFrame);
+    // Get a color frame from Kinect
+    HRESULT hrColor = m_pColorFrameReader->AcquireLatestFrame(&pColorFrame);
 
-    if (SUCCEEDED(hr))
+    if (SUCCEEDED(hrInfrared))
+    {
+        INT64 currentInfraredFrameTime = 0;
+        IFrameDescription* pFrameDescription = NULL;
+        int nWidth = 0;
+        int nHeight = 0;
+        UINT nBufferSize = 0;
+        UINT16 *pBuffer = NULL;
+
+        // Unit: 100 ns
+        HRESULT hr = pInfraredFrame->get_RelativeTime(&currentInfraredFrameTime);
+
+        if (SUCCEEDED(hr))
+        {
+            hr = pInfraredFrame->get_FrameDescription(&pFrameDescription);
+        }
+
+        if (SUCCEEDED(hr))
+        {
+            hr = pFrameDescription->get_Width(&nWidth);
+        }
+
+        if (SUCCEEDED(hr))
+        {
+            hr = pFrameDescription->get_Height(&nHeight);
+        }
+
+        if (SUCCEEDED(hr))
+        {
+            hr = pInfraredFrame->AccessUnderlyingBuffer(&nBufferSize, &pBuffer);            
+        }
+
+        if (SUCCEEDED(hr))
+        {
+            ProcessInfrared(currentInfraredFrameTime, pBuffer, nWidth, nHeight);
+        }
+
+        SafeRelease(pFrameDescription);
+    }
+
+    SafeRelease(pInfraredFrame);
+    
+        if (SUCCEEDED(hrDepth))
     {
         INT64 currentDepthFrameTime = 0;
         IFrameDescription* pFrameDescription = NULL;
@@ -236,7 +285,7 @@ void CKinectV2Recorder::Update()
         UINT16 *pBuffer = NULL;
 
         // Unit: 100 ns
-        hr = pDepthFrame->get_RelativeTime(&currentDepthFrameTime);
+        HRESULT hr = pDepthFrame->get_RelativeTime(&currentDepthFrameTime);
 
         if (SUCCEEDED(hr))
         {
@@ -278,59 +327,7 @@ void CKinectV2Recorder::Update()
 
     SafeRelease(pDepthFrame);
     
-    // Get a infrared frame from Kinect
-    IInfraredFrame* pInfraredFrame = NULL;
-
-    hr = m_pInfraredFrameReader->AcquireLatestFrame(&pInfraredFrame);
-
-    if (SUCCEEDED(hr))
-    {
-        INT64 currentInfraredFrameTime = 0;
-        IFrameDescription* pFrameDescription = NULL;
-        int nWidth = 0;
-        int nHeight = 0;
-        UINT nBufferSize = 0;
-        UINT16 *pBuffer = NULL;
-
-        // Unit: 100 ns
-        hr = pInfraredFrame->get_RelativeTime(&currentInfraredFrameTime);
-
-        if (SUCCEEDED(hr))
-        {
-            hr = pInfraredFrame->get_FrameDescription(&pFrameDescription);
-        }
-
-        if (SUCCEEDED(hr))
-        {
-            hr = pFrameDescription->get_Width(&nWidth);
-        }
-
-        if (SUCCEEDED(hr))
-        {
-            hr = pFrameDescription->get_Height(&nHeight);
-        }
-
-        if (SUCCEEDED(hr))
-        {
-            hr = pInfraredFrame->AccessUnderlyingBuffer(&nBufferSize, &pBuffer);            
-        }
-
-        if (SUCCEEDED(hr))
-        {
-            ProcessInfrared(currentInfraredFrameTime, pBuffer, nWidth, nHeight);
-        }
-
-        SafeRelease(pFrameDescription);
-    }
-
-    SafeRelease(pInfraredFrame);
-    
-    // Get a color frame from Kinect
-    IColorFrame* pColorFrame = NULL;
-
-    hr = m_pColorFrameReader->AcquireLatestFrame(&pColorFrame);
-
-    if (SUCCEEDED(hr))
+    if (SUCCEEDED(hrColor))
     {
         INT64 currentColorFrameTime = 0;
         IFrameDescription* pFrameDescription = NULL;
@@ -341,7 +338,7 @@ void CKinectV2Recorder::Update()
         RGBQUAD *pBuffer = NULL;
 
         // Unit: 100 ns
-        hr = pColorFrame->get_RelativeTime(&currentColorFrameTime);
+        HRESULT hr = pColorFrame->get_RelativeTime(&currentColorFrameTime);
 
         if (SUCCEEDED(hr))
         {
@@ -660,16 +657,23 @@ LRESULT CALLBACK CKinectV2Recorder::DlgProc(HWND hWnd, UINT message, WPARAM wPar
             D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &m_pD2DFactory);
 
             // Create and initialize a new Direct2D image renderer (take a look at ImageRenderer.h)
-            // We'll use this to draw the data we receive from the Kinect to the screen           
+            // We'll use this to draw the data we receive from the Kinect to the screen 
+            m_pDrawInfrared = new ImageRenderer();
+            HRESULT hr = m_pDrawInfrared->Initialize(GetDlgItem(m_hWnd, IDC_INFRAREDVIEW), m_pD2DFactory, cInfraredWidth, cInfraredHeight, cInfraredWidth * sizeof(RGBQUAD));
+            if (FAILED(hr))
+            {
+                SetStatusMessage(L"Failed to initialize the Direct2D draw device.", 10000, true);
+            }    
+            
             m_pDrawDepth = new ImageRenderer();
-            HRESULT hr = m_pDrawDepth->Initialize(GetDlgItem(m_hWnd, IDC_DEPTHVIEW), m_pD2DFactory, cDepthWidth, cDepthHeight, cDepthWidth * sizeof(RGBQUAD));
+            hr = m_pDrawDepth->Initialize(GetDlgItem(m_hWnd, IDC_DEPTHVIEW), m_pD2DFactory, cDepthWidth, cDepthHeight, cDepthWidth * sizeof(RGBQUAD));
             if (FAILED(hr))
             {
                 SetStatusMessage(L"Failed to initialize the Direct2D draw device.", 10000, true);
             }
             
-            m_pDrawInfrared = new ImageRenderer();
-            hr = m_pDrawInfrared->Initialize(GetDlgItem(m_hWnd, IDC_INFRAREDVIEW), m_pD2DFactory, cInfraredWidth, cInfraredHeight, cInfraredWidth * sizeof(RGBQUAD)); 
+            m_pDrawColor = new ImageRenderer();
+            hr = m_pDrawColor->Initialize(GetDlgItem(m_hWnd, IDC_COLORVIEW), m_pD2DFactory, cColorWidth, cColorHeight, cColorWidth * sizeof(RGBQUAD));
             if (FAILED(hr))
             {
                 SetStatusMessage(L"Failed to initialize the Direct2D draw device.", 10000, true);
@@ -677,13 +681,6 @@ LRESULT CALLBACK CKinectV2Recorder::DlgProc(HWND hWnd, UINT message, WPARAM wPar
 
             // Get and initialize the default Kinect sensor
             InitializeDefaultSensor();
-
-            m_pDrawColor = new ImageRenderer();
-            hr = m_pDrawColor->Initialize(GetDlgItem(m_hWnd, IDC_COLORVIEW), m_pD2DFactory, cColorWidth, cColorHeight, cColorWidth * sizeof(RGBQUAD));
-            if (FAILED(hr))
-            {
-                SetStatusMessage(L"Failed to initialize the Direct2D draw device.", 10000, true);
-            }
 
             // Check if the necessary directories exist
             if (!IsDirectoryExists(L"2D"))
@@ -733,20 +730,12 @@ HRESULT CKinectV2Recorder::InitializeDefaultSensor()
     if (m_pKinectSensor)
     {
         // Initialize the Kinect and get the readers
-        IDepthFrameSource* pDepthFrameSource = NULL;
         IInfraredFrameSource* pInfraredFrameSource = NULL;
+        IDepthFrameSource* pDepthFrameSource = NULL;
         IColorFrameSource* pColorFrameSource = NULL;
 
         hr = m_pKinectSensor->Open();
 
-        if (SUCCEEDED(hr))
-        {
-            hr = m_pKinectSensor->get_DepthFrameSource(&pDepthFrameSource);
-        }
-        if (SUCCEEDED(hr))
-        {
-            hr = pDepthFrameSource->OpenReader(&m_pDepthFrameReader);
-        }
         if (SUCCEEDED(hr))
         {
             hr = m_pKinectSensor->get_InfraredFrameSource(&pInfraredFrameSource);
@@ -757,6 +746,14 @@ HRESULT CKinectV2Recorder::InitializeDefaultSensor()
         }
         if (SUCCEEDED(hr))
         {
+            hr = m_pKinectSensor->get_DepthFrameSource(&pDepthFrameSource);
+        }
+        if (SUCCEEDED(hr))
+        {
+            hr = pDepthFrameSource->OpenReader(&m_pDepthFrameReader);
+        }
+        if (SUCCEEDED(hr))
+        {
             hr = m_pKinectSensor->get_ColorFrameSource(&pColorFrameSource);
         }
         if (SUCCEEDED(hr))
@@ -764,8 +761,8 @@ HRESULT CKinectV2Recorder::InitializeDefaultSensor()
             hr = pColorFrameSource->OpenReader(&m_pColorFrameReader);
         }
 
-        SafeRelease(pDepthFrameSource);
         SafeRelease(pInfraredFrameSource);
+        SafeRelease(pDepthFrameSource);
         SafeRelease(pColorFrameSource);
     }
 
@@ -779,15 +776,13 @@ HRESULT CKinectV2Recorder::InitializeDefaultSensor()
 }
 
 /// <summary>
-/// Handle new depth data
+/// Handle new infrared data
 /// <param name="nTime">timestamp of frame</param>
 /// <param name="pBuffer">pointer to frame data</param>
 /// <param name="nWidth">width (in pixels) of input image data</param>
 /// <param name="nHeight">height (in pixels) of input image data</param>
-/// <param name="nMinDepth">minimum reliable depth</param>
-/// <param name="nMaxDepth">maximum reliable depth</param>
 /// </summary>
-void CKinectV2Recorder::ProcessDepth(INT64 nTime, const UINT16* pBuffer, int nWidth, int nHeight, USHORT nMinDepth, USHORT nMaxDepth)
+void CKinectV2Recorder::ProcessInfrared(INT64 nTime, const UINT16* pBuffer, int nWidth, int nHeight)
 {
     if (m_hWnd)
     {
@@ -816,87 +811,7 @@ void CKinectV2Recorder::ProcessDepth(INT64 nTime, const UINT16* pBuffer, int nWi
             m_fFPS = fps;
         }
     }
-
-    // Make sure we've received valid data
-    if (m_pDepthRGBX && pBuffer && (nWidth == cDepthWidth) && (nHeight == cDepthHeight))
-    {
-        RGBQUAD* pRGBX = m_pDepthRGBX;
-
-        // end pixel is start + width*height - 1
-        const UINT16* pBufferEnd = pBuffer + (nWidth * nHeight);
-
-        while (pBuffer < pBufferEnd)
-        {
-            USHORT depth = *pBuffer;
-
-            // To convert to a byte, we're discarding the most-significant
-            // rather than least-significant bits.
-            // We're preserving detail, although the intensity will "wrap."
-            // Values outside the reliable depth range are mapped to 0 (black).
-
-            // Note: Using conditionals in this loop could degrade performance.
-            // Consider using a lookup table instead when writing production code.
-            BYTE intensity = static_cast<BYTE>((depth >= nMinDepth) && (depth <= nMaxDepth) ? (depth % 256) : 0);
-
-            pRGBX->rgbRed   = intensity;
-            pRGBX->rgbGreen = intensity;
-            pRGBX->rgbBlue  = intensity;
-
-            ++pRGBX;
-            ++pBuffer;
-        }
-
-        // Draw the data with Direct2D
-        m_pDrawDepth->Draw(reinterpret_cast<BYTE*>(m_pDepthRGBX), cDepthWidth * cDepthHeight * sizeof(RGBQUAD));
-
-        if (m_bRecord)
-        {
-            if (!m_nStartTime)
-            {
-                if (IsDirectoryExists(m_cSaveFolder))
-                {
-                    MessageBox(NULL,
-                        L"The 'depth' folder is not emtpy!\n",
-                        L"Frames already existed",
-                        MB_OK | MB_ICONERROR
-                    );
-                    m_bRecord = false;
-                    SendDlgItemMessage(m_hWnd, IDC_BUTTON_RECORD, BM_SETIMAGE, (WPARAM)IMAGE_ICON, (LPARAM)m_hRecord);
-                    return;
-                }
-                m_nStartTime = nTime;
-            }
-
-            if (!IsDirectoryExists(m_cSaveFolder))
-            {
-                CreateDirectory(m_cSaveFolder, NULL);
-            }
-
-            WCHAR szDepthSaveFolder[MAX_PATH], szTempPath[MAX_PATH];
-
-            StringCchPrintfW(szDepthSaveFolder, _countof(szDepthSaveFolder), L"%s\\depth", m_cSaveFolder);
-
-            if (!IsDirectoryExists(szDepthSaveFolder))
-            {
-                CreateDirectory(szDepthSaveFolder, NULL);
-            }
-
-            StringCchPrintfW(szDepthSaveFolder, _countof(szDepthSaveFolder), L"%s\\%0.6f.bmp", szDepthSaveFolder, (nTime - m_nStartTime) / 10000000.);
-            // Write out the bitmap to disk
-            HRESULT hr = SaveBitmapToFile(reinterpret_cast<BYTE*>(m_pDepthRGBX), nWidth, nHeight, sizeof(RGBQUAD)* 8, szDepthSaveFolder);
-        }
-    }
-}
-
-/// <summary>
-/// Handle new infrared data
-/// <param name="nTime">timestamp of frame</param>
-/// <param name="pBuffer">pointer to frame data</param>
-/// <param name="nWidth">width (in pixels) of input image data</param>
-/// <param name="nHeight">height (in pixels) of input image data</param>
-/// </summary>
-void CKinectV2Recorder::ProcessInfrared(INT64 nTime, const UINT16* pBuffer, int nWidth, int nHeight)
-{
+    
     if (m_pInfraredRGBX && pBuffer && (nWidth == cInfraredWidth) && (nHeight == cInfraredHeight))
     {
         RGBQUAD* pDest = m_pInfraredRGBX;
@@ -934,8 +849,24 @@ void CKinectV2Recorder::ProcessInfrared(INT64 nTime, const UINT16* pBuffer, int 
         // Draw the data with Direct2D
         m_pDrawInfrared->Draw(reinterpret_cast<BYTE*>(m_pInfraredRGBX), cInfraredWidth * cInfraredHeight * sizeof(RGBQUAD));
 
-        if (m_bRecord && m_nStartTime)
+        if (m_bRecord)
         {
+            if (!m_nStartTime)
+            {
+                if (IsDirectoryExists(m_cSaveFolder))
+                {
+                    MessageBox(NULL,
+                        L"The related folder is not emtpy!\n",
+                        L"Frames already existed",
+                        MB_OK | MB_ICONERROR
+                    );
+                    m_bRecord = false;
+                    SendDlgItemMessage(m_hWnd, IDC_BUTTON_RECORD, BM_SETIMAGE, (WPARAM)IMAGE_ICON, (LPARAM)m_hRecord);
+                    return;
+                }
+                m_nStartTime = nTime;
+            }            
+            
             if (!IsDirectoryExists(m_cSaveFolder))
             {
                 CreateDirectory(m_cSaveFolder, NULL);
@@ -958,6 +889,67 @@ void CKinectV2Recorder::ProcessInfrared(INT64 nTime, const UINT16* pBuffer, int 
 }
 
 /// <summary>
+/// Handle new depth data
+/// <param name="nTime">timestamp of frame</param>
+/// <param name="pBuffer">pointer to frame data</param>
+/// <param name="nWidth">width (in pixels) of input image data</param>
+/// <param name="nHeight">height (in pixels) of input image data</param>
+/// <param name="nMinDepth">minimum reliable depth</param>
+/// <param name="nMaxDepth">maximum reliable depth</param>
+/// </summary>
+void CKinectV2Recorder::ProcessDepth(INT64 nTime, const UINT16* pBuffer, int nWidth, int nHeight, USHORT nMinDepth, USHORT nMaxDepth)
+{
+    // Make sure we've received valid data
+    if (m_pDepthRGBX && pBuffer && (nWidth == cDepthWidth) && (nHeight == cDepthHeight))
+    {
+        RGBQUAD* pRGBX = m_pDepthRGBX;
+
+        // end pixel is start + width*height - 1
+        const UINT16* pBufferEnd = pBuffer + (nWidth * nHeight);
+
+        while (pBuffer < pBufferEnd)
+        {
+            USHORT depth = *pBuffer;
+
+            // To convert to a byte, we're discarding the most-significant
+            // rather than least-significant bits.
+            // We're preserving detail, although the intensity will "wrap."
+            // Values outside the reliable depth range are mapped to 0 (black).
+
+            // Note: Using conditionals in this loop could degrade performance.
+            // Consider using a lookup table instead when writing production code.
+            BYTE intensity = static_cast<BYTE>((depth >= nMinDepth) && (depth <= nMaxDepth) ? (depth % 256) : 0);
+
+            pRGBX->rgbRed   = intensity;
+            pRGBX->rgbGreen = intensity;
+            pRGBX->rgbBlue  = intensity;
+
+            ++pRGBX;
+            ++pBuffer;
+        }
+
+        // Draw the data with Direct2D
+        m_pDrawDepth->Draw(reinterpret_cast<BYTE*>(m_pDepthRGBX), cDepthWidth * cDepthHeight * sizeof(RGBQUAD));
+
+        if (m_bRecord && m_nStartTime)
+        {
+            WCHAR szDepthSaveFolder[MAX_PATH];
+
+            StringCchPrintfW(szDepthSaveFolder, _countof(szDepthSaveFolder), L"%s\\depth", m_cSaveFolder);
+
+            if (!IsDirectoryExists(szDepthSaveFolder))
+            {
+                CreateDirectory(szDepthSaveFolder, NULL);
+            }
+
+            StringCchPrintfW(szDepthSaveFolder, _countof(szDepthSaveFolder), L"%s\\%0.6f.bmp", szDepthSaveFolder, (nTime - m_nStartTime) / 10000000.);
+            // Write out the bitmap to disk
+            HRESULT hr = SaveBitmapToFile(reinterpret_cast<BYTE*>(m_pDepthRGBX), nWidth, nHeight, sizeof(RGBQUAD)* 8, szDepthSaveFolder);
+        }
+    }
+}
+
+/// <summary>
 /// Handle new color data
 /// <param name="nTime">timestamp of frame</param>
 /// <param name="pBuffer">pointer to frame data</param>
@@ -974,12 +966,7 @@ void CKinectV2Recorder::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, 
 
         if (m_bRecord && m_nStartTime)
         {
-            if (!IsDirectoryExists(m_cSaveFolder))
-            {
-                CreateDirectory(m_cSaveFolder, NULL);
-            }
-
-            WCHAR szColorSaveFolder[MAX_PATH], szTempPath[MAX_PATH];
+            WCHAR szColorSaveFolder[MAX_PATH];
 
             StringCchPrintfW(szColorSaveFolder, _countof(szColorSaveFolder), L"%s\\rgb", m_cSaveFolder);
 
