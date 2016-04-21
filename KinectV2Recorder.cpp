@@ -14,7 +14,6 @@
 #include <strsafe.h>
 #include "resource.h"
 #include "KinectV2Recorder.h"
-# include   < shlwapi.h >
 
 /// <summary>
 /// Entry point for the application
@@ -52,16 +51,18 @@ CKinectV2Recorder::CKinectV2Recorder() :
     m_bColorSynchronized(false),
     m_bSelect2D(true),
     m_pKinectSensor(NULL),
-    m_pDepthFrameReader(NULL),
     m_pInfraredFrameReader(NULL),
+    m_pDepthFrameReader(NULL),
     m_pColorFrameReader(NULL),
     m_pD2DFactory(NULL),
-    m_pDrawDepth(NULL),
     m_pDrawInfrared(NULL),
+    m_pDrawDepth(NULL),
     m_pDrawColor(NULL),
-    m_pDepthRGBX(NULL),
     m_pInfraredRGBX(NULL),
+    m_pDepthRGBX(NULL),
     m_pColorRGBX(NULL),
+    m_pInfraredUINT16(NULL),
+    m_pDepthUINT16(NULL),
     m_nModel2DIndex(0),
     m_nModel3DIndex(0),
     m_nTypeIndex(0),
@@ -74,14 +75,20 @@ CKinectV2Recorder::CKinectV2Recorder() :
         m_fFreq = double(qpf.QuadPart);
     }
     
-    // create heap storage for depth pixel data in RGBX format
-    m_pDepthRGBX = new RGBQUAD[cDepthWidth * cDepthHeight];
-    
     // create heap storage for infrared pixel data in RGBX format
     m_pInfraredRGBX = new RGBQUAD[cInfraredWidth * cInfraredHeight];
 
+    // create heap storage for depth pixel data in RGBX  & UINT16 format
+    m_pDepthRGBX = new RGBQUAD[cDepthWidth * cDepthHeight];
+
     // create heap storage for color pixel data in RGBX format
     m_pColorRGBX = new RGBQUAD[cColorWidth * cColorHeight];
+
+    // create heap storage for infrared pixel data in UINT16 format
+    m_pInfraredUINT16 = new UINT16[cInfraredWidth * cInfraredHeight];
+
+    // create heap storage for depth pixel data in UINT16 format
+    m_pDepthUINT16 = new UINT16[cDepthWidth * cDepthHeight];
 }
   
 
@@ -91,16 +98,16 @@ CKinectV2Recorder::CKinectV2Recorder() :
 CKinectV2Recorder::~CKinectV2Recorder()
 {
     // clean up Direct2D renderer
-    if (m_pDrawDepth)
-    {
-        delete m_pDrawDepth;
-        m_pDrawDepth = NULL;
-    }
-    
     if (m_pDrawInfrared)
     {
         delete m_pDrawInfrared;
         m_pDrawInfrared = NULL;
+    }
+
+    if (m_pDrawDepth)
+    {
+        delete m_pDrawDepth;
+        m_pDrawDepth = NULL;
     }
 
     if (m_pDrawColor)
@@ -109,16 +116,16 @@ CKinectV2Recorder::~CKinectV2Recorder()
         m_pDrawColor = NULL;
     }
     
+    if (m_pInfraredRGBX)
+    {
+        delete[] m_pInfraredRGBX;
+        m_pInfraredRGBX = NULL;
+    }
+
     if (m_pDepthRGBX)
     {
         delete [] m_pDepthRGBX;
         m_pDepthRGBX = NULL;
-    }
-    
-    if (m_pInfraredRGBX)
-    {
-        delete [] m_pInfraredRGBX;
-        m_pInfraredRGBX = NULL;
     }
 
     if (m_pColorRGBX)
@@ -127,14 +134,26 @@ CKinectV2Recorder::~CKinectV2Recorder()
         m_pColorRGBX = NULL;
     }
 
+    if (m_pInfraredUINT16)
+    {
+        delete[] m_pInfraredUINT16;
+        m_pInfraredUINT16 = NULL;
+    }
+
+    if (m_pDepthUINT16)
+    {
+        delete[] m_pDepthUINT16;
+        m_pDepthUINT16 = NULL;
+    }
+
     // clean up Direct2D
     SafeRelease(m_pD2DFactory);
+
+    // done with infrared frame reader
+    SafeRelease(m_pInfraredFrameReader);
     
     // done with depth frame reader
     SafeRelease(m_pDepthFrameReader);
-    
-    // done with infrared frame reader
-    SafeRelease(m_pInfraredFrameReader);
 
     // done with color frame reader
     SafeRelease(m_pColorFrameReader);
@@ -209,7 +228,7 @@ int CKinectV2Recorder::Run(HINSTANCE hInstance, int nCmdShow)
 /// </summary>
 void CKinectV2Recorder::Update()
 {
-    if (!m_pDepthFrameReader | !m_pInfraredFrameReader | !m_pColorFrameReader)
+    if (!m_pInfraredFrameReader | !m_pDepthFrameReader | !m_pColorFrameReader)
     {
         return;
     }
@@ -273,7 +292,7 @@ void CKinectV2Recorder::Update()
 
     SafeRelease(pInfraredFrame);
     
-        if (SUCCEEDED(hrDepth))
+    if (SUCCEEDED(hrDepth))
     {
         INT64 currentDepthFrameTime = 0;
         IFrameDescription* pFrameDescription = NULL;
@@ -815,6 +834,7 @@ void CKinectV2Recorder::ProcessInfrared(INT64 nTime, const UINT16* pBuffer, int 
     if (m_pInfraredRGBX && pBuffer && (nWidth == cInfraredWidth) && (nHeight == cInfraredHeight))
     {
         RGBQUAD* pDest = m_pInfraredRGBX;
+        UINT16* pUINT16 = m_pInfraredUINT16;
 
         // end pixel is start + width*height - 1
         const UINT16* pBufferEnd = pBuffer + (nWidth * nHeight);
@@ -842,8 +862,12 @@ void CKinectV2Recorder::ProcessInfrared(INT64 nTime, const UINT16* pBuffer, int 
 			pDest->rgbGreen = intensity;
 			pDest->rgbBlue = intensity;
 
+            // convert UINT16 to Big-Endian format
+            (*pUINT16) = ((*pBuffer) >> 8) | ((*pBuffer) << 8);
+
 			++pDest;
             ++pBuffer;
+            ++pUINT16;
         }
 
         // Draw the data with Direct2D
@@ -881,9 +905,10 @@ void CKinectV2Recorder::ProcessInfrared(INT64 nTime, const UINT16* pBuffer, int 
                 CreateDirectory(szInfraredSaveFolder, NULL);
             }
 
-            StringCchPrintfW(szInfraredSaveFolder, _countof(szInfraredSaveFolder), L"%s\\%0.6f.bmp", szInfraredSaveFolder, (nTime - m_nStartTime) / 10000000.);
+            StringCchPrintfW(szInfraredSaveFolder, _countof(szInfraredSaveFolder), L"%s\\%0.6f.pgm", szInfraredSaveFolder, (nTime - m_nStartTime) / 10000000.);
+            
             // Write out the bitmap to disk
-            HRESULT hr = SaveBitmapToFile(reinterpret_cast<BYTE*>(m_pInfraredRGBX), nWidth, nHeight, sizeof(RGBQUAD)* 8, szInfraredSaveFolder);
+            HRESULT hr = SaveToPGM(reinterpret_cast<BYTE*>(m_pInfraredUINT16), nWidth, nHeight, sizeof(UINT16)* 8, 65535, szInfraredSaveFolder);
         }
     }
 }
@@ -903,6 +928,7 @@ void CKinectV2Recorder::ProcessDepth(INT64 nTime, const UINT16* pBuffer, int nWi
     if (m_pDepthRGBX && pBuffer && (nWidth == cDepthWidth) && (nHeight == cDepthHeight))
     {
         RGBQUAD* pRGBX = m_pDepthRGBX;
+        UINT16* pUINT16 = m_pDepthUINT16;
 
         // end pixel is start + width*height - 1
         const UINT16* pBufferEnd = pBuffer + (nWidth * nHeight);
@@ -918,14 +944,19 @@ void CKinectV2Recorder::ProcessDepth(INT64 nTime, const UINT16* pBuffer, int nWi
 
             // Note: Using conditionals in this loop could degrade performance.
             // Consider using a lookup table instead when writing production code.
-            BYTE intensity = static_cast<BYTE>((depth >= nMinDepth) && (depth <= nMaxDepth) ? (depth % 256) : 0);
+            if ((depth < nMinDepth) || (depth > nMaxDepth)) depth = 0;
+            BYTE intensity = static_cast<BYTE>(depth % 256);
 
             pRGBX->rgbRed   = intensity;
             pRGBX->rgbGreen = intensity;
             pRGBX->rgbBlue  = intensity;
 
+            // convert UINT16 to Big-Endian format
+            (*pUINT16) = ((depth) >> 8) | ((depth) << 8);
+
             ++pRGBX;
             ++pBuffer;
+            ++pUINT16;
         }
 
         // Draw the data with Direct2D
@@ -942,9 +973,9 @@ void CKinectV2Recorder::ProcessDepth(INT64 nTime, const UINT16* pBuffer, int nWi
                 CreateDirectory(szDepthSaveFolder, NULL);
             }
 
-            StringCchPrintfW(szDepthSaveFolder, _countof(szDepthSaveFolder), L"%s\\%0.6f.bmp", szDepthSaveFolder, (nTime - m_nStartTime) / 10000000.);
+            StringCchPrintfW(szDepthSaveFolder, _countof(szDepthSaveFolder), L"%s\\%0.6f.pgm", szDepthSaveFolder, (nTime - m_nStartTime) / 10000000.);
             // Write out the bitmap to disk
-            HRESULT hr = SaveBitmapToFile(reinterpret_cast<BYTE*>(m_pDepthRGBX), nWidth, nHeight, sizeof(RGBQUAD)* 8, szDepthSaveFolder);
+            HRESULT hr = SaveToPGM(reinterpret_cast<BYTE*>(m_pDepthUINT16), nWidth, nHeight, sizeof(UINT16)* 8, 65535, szDepthSaveFolder);
         }
     }
 }
@@ -977,7 +1008,7 @@ void CKinectV2Recorder::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, 
 
             StringCchPrintfW(szColorSaveFolder, _countof(szColorSaveFolder), L"%s\\%0.6f.bmp", szColorSaveFolder, (nTime - m_nStartTime) / 10000000.);
             // Write out the bitmap to disk
-            HRESULT hr = SaveBitmapToFile(reinterpret_cast<BYTE*>(m_pColorRGBX), nWidth, nHeight, sizeof(RGBQUAD)* 8, szColorSaveFolder);
+            HRESULT hr = SaveToBMP(reinterpret_cast<BYTE*>(m_pColorRGBX), nWidth, nHeight, sizeof(RGBQUAD)* 8, szColorSaveFolder);
         }
     }
 }
@@ -1013,7 +1044,7 @@ bool CKinectV2Recorder::SetStatusMessage(_In_z_ WCHAR* szMessage, DWORD nShowTim
 /// <param name="wBitsPerPixel">bits per pixel of image data</param>
 /// <param name="lpszFilePath">full file path to output bitmap to</param>
 /// <returns>indicates success or failure</returns>
-HRESULT CKinectV2Recorder::SaveBitmapToFile(BYTE* pBitmapBits, LONG lWidth, LONG lHeight, WORD wBitsPerPixel, LPCWSTR lpszFilePath)
+HRESULT CKinectV2Recorder::SaveToBMP(BYTE* pBitmapBits, LONG lWidth, LONG lHeight, WORD wBitsPerPixel, LPCWSTR lpszFilePath)
 {
     DWORD dwByteCount = lWidth * lHeight * (wBitsPerPixel / 8);
 
@@ -1064,6 +1095,54 @@ HRESULT CKinectV2Recorder::SaveBitmapToFile(BYTE* pBitmapBits, LONG lWidth, LONG
         CloseHandle(hFile);
         return E_FAIL;
     }    
+
+    // Close the file
+    CloseHandle(hFile);
+    return S_OK;
+}
+
+/// <summary>
+/// Save passed in image data to disk as a pgm file
+/// </summary>
+/// <param name="pBitmapBits">image data to save</param>
+/// <param name="lWidth">width (in pixels) of input image data</param>
+/// <param name="lHeight">height (in pixels) of input image data</param>
+/// <param name="wBitsPerPixel">bits per pixel of image data</param>
+/// <param name="lMaxPixel">max value of a pixel</param>
+/// <param name="lpszFilePath">full file path to output bitmap to</param>
+/// <returns>indicates success or failure</returns>
+HRESULT CKinectV2Recorder::SaveToPGM(BYTE* pBitmapBits, LONG lWidth, LONG lHeight, WORD wBitsPerPixel, LONG lMaxPixel, LPCWSTR lpszFilePath)
+{
+    DWORD dwByteCount = lWidth * lHeight * (wBitsPerPixel / 8);
+
+    // Set save folder
+    CHAR szHeader[256];
+    sprintf_s(szHeader, _countof(szHeader), "P5\n%d %d\n%d\n", lWidth, lHeight, lMaxPixel);
+
+    // Create the file on disk to write to
+    HANDLE hFile = CreateFileW(lpszFilePath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+
+    // Return if error opening file
+    if (NULL == hFile)
+    {
+        return E_ACCESSDENIED;
+    }
+
+    DWORD dwBytesWritten = 0;
+
+    // Write the pgm file header
+    if (!WriteFile(hFile, szHeader, strlen(szHeader), &dwBytesWritten, NULL))
+    {
+        CloseHandle(hFile);
+        return E_FAIL;
+    }
+
+    // Write the grayscale data
+    if (!WriteFile(hFile, pBitmapBits, dwByteCount, &dwBytesWritten, NULL))
+    {
+        CloseHandle(hFile);
+        return E_FAIL;
+    }
 
     // Close the file
     CloseHandle(hFile);

@@ -117,6 +117,8 @@ private:
     RGBQUAD*                m_pInfraredRGBX;
     RGBQUAD*                m_pDepthRGBX;
     RGBQUAD*                m_pColorRGBX;
+    UINT16*                 m_pInfraredUINT16;
+    UINT16*                 m_pDepthUINT16;
 
     // Index
     UINT                    m_nModel2DIndex;
@@ -199,7 +201,19 @@ private:
     /// <param name="wBitsPerPixel">bits per pixel of image data</param>
     /// <param name="lpszFilePath">full file path to output bitmap to</param>
     /// <returns>indicates success or failure</returns>
-    HRESULT                 SaveBitmapToFile(BYTE* pBitmapBits, LONG lWidth, LONG lHeight, WORD wBitsPerPixel, LPCWSTR lpszFilePath);
+    HRESULT                 SaveToBMP(BYTE* pBitmapBits, LONG lWidth, LONG lHeight, WORD wBitsPerPixel, LPCWSTR lpszFilePath);
+
+    /// <summary>
+    /// Save passed in image data to disk as a pgm file
+    /// </summary>
+    /// <param name="pBitmapBits">image data to save</param>
+    /// <param name="lWidth">width (in pixels) of input image data</param>
+    /// <param name="lHeight">height (in pixels) of input image data</param>
+    /// <param name="wBitsPerPixel">bits per pixel of image data</param>
+    /// <param name="lMaxPixel">max value of a pixel</param>
+    /// <param name="lpszFilePath">full file path to output bitmap to</param>
+    /// <returns>indicates success or failure</returns>
+    HRESULT                 SaveToPGM(BYTE* pBitmapBits, LONG lWidth, LONG lHeight, WORD wBitsPerPixel, LONG lMaxPixel, LPCWSTR lpszFilePath);
 
     /// <summary>
     /// Check if the directory exists
