@@ -1,5 +1,11 @@
+// KinectV2Recorder.h
+//
+// Author: Po-Chen Wu (pcwu0329@gmail.com)
+//
+// These codes are written mainly based on codes in Kinect for Windows SDK 2.0
+
 //------------------------------------------------------------------------------
-// <copyright file="KinectV2Recorder.h" company="Microsoft">
+// <copyright file="ColorBasics.h" company="Microsoft">
 //     Copyright (c) Microsoft Corporation.  All rights reserved.
 // </copyright>
 //------------------------------------------------------------------------------
@@ -185,16 +191,6 @@ private:
     bool                    SetStatusMessage(_In_z_ WCHAR* szMessage, DWORD nShowTimeMsec, bool bForce);
 
     /// <summary>
-    /// Get the name of the file where screenshot will be stored.
-    /// </summary>
-    /// <param name="lpszFilePath">string buffer that will receive screenshot file name.</param>
-    /// <param name="nFilePathSize">number of characters in lpszFilePath string buffer.</param>
-    /// <returns>
-    /// S_OK on success, otherwise failure code.
-    /// </returns>
-    HRESULT                 GetScreenshotFileName(_Out_writes_z_(nFilePathSize) LPWSTR lpszFilePath, UINT nFilePathSize);
-
-    /// <summary>
     /// Save passed in image data to disk as a bitmap
     /// </summary>
     /// <param name="pBitmapBits">image data to save</param>
@@ -204,5 +200,12 @@ private:
     /// <param name="lpszFilePath">full file path to output bitmap to</param>
     /// <returns>indicates success or failure</returns>
     HRESULT                 SaveBitmapToFile(BYTE* pBitmapBits, LONG lWidth, LONG lHeight, WORD wBitsPerPixel, LPCWSTR lpszFilePath);
+
+    /// <summary>
+    /// Check if the directory exists
+    /// </summary>
+    /// <param name="szDirName">directory</param>
+    /// <returns>indicates exists or not</returns>
+    bool                    IsDirectoryExists(WCHAR* szDirName);
 };
 

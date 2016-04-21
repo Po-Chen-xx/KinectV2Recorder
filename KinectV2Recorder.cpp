@@ -1,5 +1,11 @@
+// KinectV2Recorder.cpp
+//
+// Author: Po-Chen Wu (pcwu0329@gmail.com)
+//
+// These codes are written mainly based on codes in Kinect for Windows SDK 2.0
+
 //------------------------------------------------------------------------------
-// <copyright file="KinectV2Recorder.cpp" company="Microsoft">
+// <copyright file="ColorBasics.cpp" company="Microsoft">
 //     Copyright (c) Microsoft Corporation.  All rights reserved.
 // </copyright>
 //------------------------------------------------------------------------------
@@ -8,6 +14,7 @@
 #include <strsafe.h>
 #include "resource.h"
 #include "KinectV2Recorder.h"
+# include   < shlwapi.h >
 
 /// <summary>
 /// Entry point for the application
@@ -442,7 +449,7 @@ void CKinectV2Recorder::InitializeUIControls()
     SendDlgItemMessage(m_hWnd, IDC_BUTTON_RECORD, BM_SETIMAGE, (WPARAM)IMAGE_ICON, (LPARAM)m_hRecord);
 
     // Set save folder
-    StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"wi_tr_1");
+    StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"2D//wi_tr_1");
 }
 
 /// <summary>
@@ -522,62 +529,63 @@ void CKinectV2Recorder::ProcessUI(WPARAM wParam, LPARAM)
         m_nSideIndex = (UINT)SendDlgItemMessage(m_hWnd, IDC_SIDE_CBO, CB_GETCURSEL, 0, 0);
     }
     // Set save folder
+
     if (m_bSelect2D)
     {
         switch (m_nModel2DIndex)
         {
-            case 0: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"wi"); break;
-            case 1: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"du"); break;
-            case 2: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"ci"); break;
-            case 3: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"be"); break;
-            case 4: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"fi"); break;
-            case 5: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"ma"); break;
+            case 0: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"2D\\wi"); break;
+            case 1: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"2D\\du"); break;
+            case 2: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"2D\\ci"); break;
+            case 3: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"2D\\be"); break;
+            case 4: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"2D\\fi"); break;
+            case 5: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"2D\\ma"); break;
         }
     }
     else{
         switch (m_nModel3DIndex)
         {
-            case 0: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"so"); break;
-            case 1: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"ch"); break;
-            case 2: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"ir"); break;
-            case 3: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"ho"); break;
-            case 4: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"bi"); break;
-            case 5: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"je"); break;
+            case 0: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"3D\\so"); break;
+            case 1: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"3D\\ch"); break;
+            case 2: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"3D\\ir"); break;
+            case 3: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"3D\\ho"); break;
+            case 4: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"3D\\bi"); break;
+            case 5: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"3D\\je"); break;
         }
     }
     switch (m_nTypeIndex)
     {
-        case 0: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_tr"); break;
-        case 1: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_zo"); break;
-        case 2: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_ir"); break;
-        case 3: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_or"); break;
-        case 4: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_fl"); break;
-        case 5: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_ml"); break;
-        case 6: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_fm"); break;
+        case 0: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_tr", m_cSaveFolder); break;
+        case 1: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_zo", m_cSaveFolder); break;
+        case 2: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_ir", m_cSaveFolder); break;
+        case 3: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_or", m_cSaveFolder); break;
+        case 4: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_fl", m_cSaveFolder); break;
+        case 5: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_ml", m_cSaveFolder); break;
+        case 6: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_fm", m_cSaveFolder); break;
     }
     if (m_nTypeIndex < 4)
     {
         switch (m_nLevelIndex)
         {
-            case 0: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_1"); break;
-            case 1: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_2"); break;
-            case 2: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_3"); break;
-            case 3: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_4"); break;
-            case 4: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_5"); break;
+            case 0: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_1", m_cSaveFolder); break;
+            case 1: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_2", m_cSaveFolder); break;
+            case 2: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_3", m_cSaveFolder); break;
+            case 3: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_4", m_cSaveFolder); break;
+            case 4: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_5", m_cSaveFolder); break;
         }
     }
     if (!m_bSelect2D)
     {
         switch (m_nSideIndex)
         {
-            case 0: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_f"); break;
-            case 1: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_l"); break;
-            case 2: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_b"); break;
-            case 3: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_r"); break;
+            case 0: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_f", m_cSaveFolder); break;
+            case 1: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_l", m_cSaveFolder); break;
+            case 2: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_b", m_cSaveFolder); break;
+            case 3: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_r", m_cSaveFolder); break;
         }
     }
     WCHAR szStatusMessage[64];
-    StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L"Save Folder: %s    FPS = %0.2f", m_cSaveFolder, m_fFPS);
+    StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L" Save Folder: %s    FPS = %0.2f", m_cSaveFolder, m_fFPS);
     (SetStatusMessage(szStatusMessage, 500, true));
     // If it was for the record control and a button clicked event, save the video sequences
     if (IDC_BUTTON_RECORD == LOWORD(wParam) && BN_CLICKED == HIWORD(wParam))
@@ -585,6 +593,7 @@ void CKinectV2Recorder::ProcessUI(WPARAM wParam, LPARAM)
         if (m_bRecord)
         {
             m_bRecord = false;
+            m_nStartTime = 0;
             SendDlgItemMessage(m_hWnd, IDC_BUTTON_RECORD, BM_SETIMAGE, (WPARAM)IMAGE_ICON, (LPARAM)m_hRecord);
         }
         else
@@ -674,6 +683,16 @@ LRESULT CALLBACK CKinectV2Recorder::DlgProc(HWND hWnd, UINT message, WPARAM wPar
             if (FAILED(hr))
             {
                 SetStatusMessage(L"Failed to initialize the Direct2D draw device.", 10000, true);
+            }
+
+            // Check if the necessary directories exist
+            if (!IsDirectoryExists(L"2D"))
+            {
+                CreateDirectory(L"2D", NULL);
+            }
+            if (!IsDirectoryExists(L"3D"))
+            {
+                CreateDirectory(L"3D", NULL);
             }
         }
         break;
@@ -787,14 +806,8 @@ void CKinectV2Recorder::ProcessDepth(INT64 nTime, const UINT16* pBuffer, int nWi
             }
         }
 
-        if (!m_nStartTime)
-        {
-            m_nStartTime = nTime;
-            m_fFPS = fps;
-        }
-
         WCHAR szStatusMessage[64];
-        StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L"Save Folder: %s    FPS = %0.2f", m_cSaveFolder, fps);
+        StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L" Save Folder: %s    FPS = %0.2f", m_cSaveFolder, fps);
 
         if (SetStatusMessage(szStatusMessage, 1000, false))
         {
@@ -838,29 +851,39 @@ void CKinectV2Recorder::ProcessDepth(INT64 nTime, const UINT16* pBuffer, int nWi
 
         if (m_bRecord)
         {
-            WCHAR szScreenshotPath[MAX_PATH];
-        
-            // Retrieve the path to My Photos
-            GetScreenshotFileName(szScreenshotPath, _countof(szScreenshotPath));
-        
+            if (!m_nStartTime)
+            {
+                if (IsDirectoryExists(m_cSaveFolder))
+                {
+                    MessageBox(NULL,
+                        L"The 'depth' folder is not emtpy!\n",
+                        L"Frames already existed",
+                        MB_OK | MB_ICONERROR
+                    );
+                    m_bRecord = false;
+                    SendDlgItemMessage(m_hWnd, IDC_BUTTON_RECORD, BM_SETIMAGE, (WPARAM)IMAGE_ICON, (LPARAM)m_hRecord);
+                    return;
+                }
+                m_nStartTime = nTime;
+            }
+
+            if (!IsDirectoryExists(m_cSaveFolder))
+            {
+                CreateDirectory(m_cSaveFolder, NULL);
+            }
+
+            WCHAR szDepthSaveFolder[MAX_PATH], szTempPath[MAX_PATH];
+
+            StringCchPrintfW(szDepthSaveFolder, _countof(szDepthSaveFolder), L"%s\\depth", m_cSaveFolder);
+
+            if (!IsDirectoryExists(szDepthSaveFolder))
+            {
+                CreateDirectory(szDepthSaveFolder, NULL);
+            }
+
+            StringCchPrintfW(szDepthSaveFolder, _countof(szDepthSaveFolder), L"%s\\%0.6f.bmp", szDepthSaveFolder, (nTime - m_nStartTime) / 10000000.);
             // Write out the bitmap to disk
-            HRESULT hr = SaveBitmapToFile(reinterpret_cast<BYTE*>(m_pDepthRGBX), nWidth, nHeight, sizeof(RGBQUAD) * 8, szScreenshotPath);
-        
-            WCHAR szStatusMessage[64 + MAX_PATH];
-            if (SUCCEEDED(hr))
-            {
-                // Set the status bar to show where the screenshot was saved
-                StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L"Screenshot saved to %s", szScreenshotPath);
-            }
-            else
-            {
-                StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L"Failed to write screenshot to %s", szScreenshotPath);
-            }
-        
-            SetStatusMessage(szStatusMessage, 5000, true);
-        
-            // toggle off so we don't save a screenshot again next frame
-            m_bRecord = false;
+            HRESULT hr = SaveBitmapToFile(reinterpret_cast<BYTE*>(m_pDepthRGBX), nWidth, nHeight, sizeof(RGBQUAD)* 8, szDepthSaveFolder);
         }
     }
 }
@@ -874,14 +897,6 @@ void CKinectV2Recorder::ProcessDepth(INT64 nTime, const UINT16* pBuffer, int nWi
 /// </summary>
 void CKinectV2Recorder::ProcessInfrared(INT64 nTime, const UINT16* pBuffer, int nWidth, int nHeight)
 {
-    if (m_hWnd)
-    {
-        if (!m_nStartTime)
-        {
-            return;
-        }
-    }
-
     if (m_pInfraredRGBX && pBuffer && (nWidth == cInfraredWidth) && (nHeight == cInfraredHeight))
     {
         RGBQUAD* pDest = m_pInfraredRGBX;
@@ -919,31 +934,25 @@ void CKinectV2Recorder::ProcessInfrared(INT64 nTime, const UINT16* pBuffer, int 
         // Draw the data with Direct2D
         m_pDrawInfrared->Draw(reinterpret_cast<BYTE*>(m_pInfraredRGBX), cInfraredWidth * cInfraredHeight * sizeof(RGBQUAD));
 
-        if (m_bRecord)
+        if (m_bRecord && m_nStartTime)
         {
-            WCHAR szScreenshotPath[MAX_PATH];
-        
-            // Retrieve the path to My Photos
-            GetScreenshotFileName(szScreenshotPath, _countof(szScreenshotPath));
-        
+            if (!IsDirectoryExists(m_cSaveFolder))
+            {
+                CreateDirectory(m_cSaveFolder, NULL);
+            }
+
+            WCHAR szInfraredSaveFolder[MAX_PATH], szTempPath[MAX_PATH];
+
+            StringCchPrintfW(szInfraredSaveFolder, _countof(szInfraredSaveFolder), L"%s\\ir", m_cSaveFolder);
+
+            if (!IsDirectoryExists(szInfraredSaveFolder))
+            {
+                CreateDirectory(szInfraredSaveFolder, NULL);
+            }
+
+            StringCchPrintfW(szInfraredSaveFolder, _countof(szInfraredSaveFolder), L"%s\\%0.6f.bmp", szInfraredSaveFolder, (nTime - m_nStartTime) / 10000000.);
             // Write out the bitmap to disk
-            HRESULT hr = SaveBitmapToFile(reinterpret_cast<BYTE*>(m_pInfraredRGBX), nWidth, nHeight, sizeof(RGBQUAD) * 8, szScreenshotPath);
-        
-            WCHAR szStatusMessage[64 + MAX_PATH];
-            if (SUCCEEDED(hr))
-            {
-                // Set the status bar to show where the screenshot was saved
-                StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L"Screenshot saved to %s", szScreenshotPath);
-            }
-            else
-            {
-                StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L"Failed to write screenshot to %s", szScreenshotPath);
-            }
-        
-            SetStatusMessage(szStatusMessage, 5000, true);
-        
-            // toggle off so we don't save a screenshot again next frame
-            m_bRecord = false;
+            HRESULT hr = SaveBitmapToFile(reinterpret_cast<BYTE*>(m_pInfraredRGBX), nWidth, nHeight, sizeof(RGBQUAD)* 8, szInfraredSaveFolder);
         }
     }
 }
@@ -957,72 +966,31 @@ void CKinectV2Recorder::ProcessInfrared(INT64 nTime, const UINT16* pBuffer, int 
 /// </summary>
 void CKinectV2Recorder::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, int nHeight)
 {
-    if (m_hWnd)
-    {
-        double fps = 0.0;
-
-        LARGE_INTEGER qpcNow = { 0 };
-        if (m_fFreq)
-        {
-            if (QueryPerformanceCounter(&qpcNow))
-            {
-                if (m_nLastCounter)
-                {
-                    m_nFramesSinceUpdate++;
-                    fps = m_fFreq * m_nFramesSinceUpdate / double(qpcNow.QuadPart - m_nLastCounter);
-                }
-            }
-        }
-
-        if (!m_nStartTime)
-        {
-            m_nStartTime = nTime;
-            m_fFPS = fps;
-        }
-
-        WCHAR szStatusMessage[64];
-        //StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L" FPS = %0.2f    Time = %I64d", fps, (nTime - m_nStartTime));
-        StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L"Save Folder: %s    FPS = %0.2f", m_cSaveFolder, fps);
-
-        if (SetStatusMessage(szStatusMessage, 1000, false))
-        {
-            m_fFPS = fps;
-            m_nLastCounter = qpcNow.QuadPart;
-            m_nFramesSinceUpdate = 0;
-        }
-    }
-
     // Make sure we've received valid data
     if (pBuffer && (nWidth == cColorWidth) && (nHeight == cColorHeight))
     {
         // Draw the data with Direct2D
         m_pDrawColor->Draw(reinterpret_cast<BYTE*>(pBuffer), cColorWidth * cColorHeight * sizeof(RGBQUAD));
 
-        if (m_bRecord)
+        if (m_bRecord && m_nStartTime)
         {
-            WCHAR szScreenshotPath[MAX_PATH];
+            if (!IsDirectoryExists(m_cSaveFolder))
+            {
+                CreateDirectory(m_cSaveFolder, NULL);
+            }
 
-            // Retrieve the path to My Photos
-            GetScreenshotFileName(szScreenshotPath, _countof(szScreenshotPath));
+            WCHAR szColorSaveFolder[MAX_PATH], szTempPath[MAX_PATH];
 
+            StringCchPrintfW(szColorSaveFolder, _countof(szColorSaveFolder), L"%s\\rgb", m_cSaveFolder);
+
+            if (!IsDirectoryExists(szColorSaveFolder))
+            {
+                CreateDirectory(szColorSaveFolder, NULL);
+            }
+
+            StringCchPrintfW(szColorSaveFolder, _countof(szColorSaveFolder), L"%s\\%0.6f.bmp", szColorSaveFolder, (nTime - m_nStartTime) / 10000000.);
             // Write out the bitmap to disk
-            HRESULT hr = SaveBitmapToFile(reinterpret_cast<BYTE*>(pBuffer), nWidth, nHeight, sizeof(RGBQUAD)* 8, szScreenshotPath);
-
-            WCHAR szStatusMessage[64 + MAX_PATH];
-            if (SUCCEEDED(hr))
-            {
-                // Set the status bar to show where the screenshot was saved
-                StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L"Screenshot saved to %s", szScreenshotPath);
-            }
-            else
-            {
-                StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L"Failed to write screenshot to %s", szScreenshotPath);
-            }
-
-            SetStatusMessage(szStatusMessage, 5000, true);
-
-            // toggle off so we don't save a screenshot again next frame
-            m_bRecord = false;
+            HRESULT hr = SaveBitmapToFile(reinterpret_cast<BYTE*>(m_pColorRGBX), nWidth, nHeight, sizeof(RGBQUAD)* 8, szColorSaveFolder);
         }
     }
 }
@@ -1047,37 +1015,6 @@ bool CKinectV2Recorder::SetStatusMessage(_In_z_ WCHAR* szMessage, DWORD nShowTim
     }
 
     return false;
-}
-
-/// <summary>
-/// Get the name of the file where screenshot will be stored.
-/// </summary>
-/// <param name="lpszFilePath">string buffer that will receive screenshot file name.</param>
-/// <param name="nFilePathSize">number of characters in lpszFilePath string buffer.</param>
-/// <returns>
-/// S_OK on success, otherwise failure code.
-/// </returns>
-HRESULT CKinectV2Recorder::GetScreenshotFileName(_Out_writes_z_(nFilePathSize) LPWSTR lpszFilePath, UINT nFilePathSize)
-{
-    WCHAR* pszKnownPath = NULL;
-    HRESULT hr = SHGetKnownFolderPath(FOLDERID_Pictures, 0, NULL, &pszKnownPath);
-
-    if (SUCCEEDED(hr))
-    {
-        // Get the time
-        WCHAR szTimeString[MAX_PATH];
-        GetTimeFormatEx(NULL, 0, NULL, L"hh'-'mm'-'ss", szTimeString, _countof(szTimeString));
-
-        // File name will be KinectScreenshotColor-HH-MM-SS.bmp
-        StringCchPrintfW(lpszFilePath, nFilePathSize, L"%s\\KinectScreenshot-Color-%s.bmp", pszKnownPath, szTimeString);
-    }
-
-    if (pszKnownPath)
-    {
-        CoTaskMemFree(pszKnownPath);
-    }
-
-    return hr;
 }
 
 /// <summary>
@@ -1144,4 +1081,17 @@ HRESULT CKinectV2Recorder::SaveBitmapToFile(BYTE* pBitmapBits, LONG lWidth, LONG
     // Close the file
     CloseHandle(hFile);
     return S_OK;
+}
+
+/// <summary>
+/// Check if the directory exists
+/// </summary>
+/// <param name="szDirName">directory</param>
+/// <returns>indicates exists or not</returns>
+bool CKinectV2Recorder::IsDirectoryExists(WCHAR* szDirName) {
+    DWORD attribs = ::GetFileAttributes(szDirName);
+    if (attribs == INVALID_FILE_ATTRIBUTES) {
+        return false;
+    }
+    return (attribs & FILE_ATTRIBUTE_DIRECTORY);
 }

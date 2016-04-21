@@ -1,3 +1,9 @@
+// resource.h
+//
+// Author: Po-Chen Wu (pcwu0329@gmail.com)
+//
+// These codes are written mainly based on codes in Kinect for Windows SDK 2.0
+
 //------------------------------------------------------------------------------
 // <copyright file="Resource.h" company="Microsoft">
 //     Copyright (c) Microsoft Corporation.  All rights reserved.
