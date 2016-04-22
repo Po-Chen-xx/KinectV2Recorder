@@ -905,7 +905,7 @@ void CKinectV2Recorder::ProcessInfrared(INT64 nTime, const UINT16* pBuffer, int 
                 CreateDirectory(szInfraredSaveFolder, NULL);
             }
 
-            StringCchPrintfW(szInfraredSaveFolder, _countof(szInfraredSaveFolder), L"%s\\%0.6f.pgm", szInfraredSaveFolder, (nTime - m_nStartTime) / 10000000.);
+            StringCchPrintfW(szInfraredSaveFolder, _countof(szInfraredSaveFolder), L"%s\\%011.6f.pgm", szInfraredSaveFolder, (nTime - m_nStartTime) / 10000000.);
             
             // Write out the bitmap to disk
             HRESULT hr = SaveToPGM(reinterpret_cast<BYTE*>(m_pInfraredUINT16), nWidth, nHeight, sizeof(UINT16)* 8, 65535, szInfraredSaveFolder);
@@ -973,7 +973,7 @@ void CKinectV2Recorder::ProcessDepth(INT64 nTime, const UINT16* pBuffer, int nWi
                 CreateDirectory(szDepthSaveFolder, NULL);
             }
 
-            StringCchPrintfW(szDepthSaveFolder, _countof(szDepthSaveFolder), L"%s\\%0.6f.pgm", szDepthSaveFolder, (nTime - m_nStartTime) / 10000000.);
+            StringCchPrintfW(szDepthSaveFolder, _countof(szDepthSaveFolder), L"%s\\%011.6f.pgm", szDepthSaveFolder, (nTime - m_nStartTime) / 10000000.);
             // Write out the bitmap to disk
             HRESULT hr = SaveToPGM(reinterpret_cast<BYTE*>(m_pDepthUINT16), nWidth, nHeight, sizeof(UINT16)* 8, 65535, szDepthSaveFolder);
         }
@@ -1006,7 +1006,7 @@ void CKinectV2Recorder::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, 
                 CreateDirectory(szColorSaveFolder, NULL);
             }
 
-            StringCchPrintfW(szColorSaveFolder, _countof(szColorSaveFolder), L"%s\\%0.6f.bmp", szColorSaveFolder, (nTime - m_nStartTime) / 10000000.);
+            StringCchPrintfW(szColorSaveFolder, _countof(szColorSaveFolder), L"%s\\%011.6f.bmp", szColorSaveFolder, (nTime - m_nStartTime) / 10000000.);
             // Write out the bitmap to disk
             HRESULT hr = SaveToBMP(reinterpret_cast<BYTE*>(m_pColorRGBX), nWidth, nHeight, sizeof(RGBQUAD)* 8, szColorSaveFolder);
         }
