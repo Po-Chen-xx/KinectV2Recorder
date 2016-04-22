@@ -2,13 +2,8 @@
 //
 // Author: Po-Chen Wu (pcwu0329@gmail.com)
 //
-// These codes are written mainly based on codes in Kinect for Windows SDK 2.0
-
-//------------------------------------------------------------------------------
-// <copyright file="ColorBasics.rc" company="Microsoft">
-//     Copyright (c) Microsoft Corporation.  All rights reserved.
-// </copyright>
-//------------------------------------------------------------------------------
+// These codes are written mainly based on codes from Kinect for Windows SDK 2.0
+// https://www.microsoft.com/en-us/download/details.aspx?id=44561
 
 // Microsoft Visual C++ generated resource script.
 //

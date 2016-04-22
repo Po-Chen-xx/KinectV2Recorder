@@ -1,147 +1,41 @@
 # KinectV2Recorder
 **Authors:** [Po-Chen Wu](https://github.com/Po-Chen)
 
-KinectV2Recorder is a Win32 program used to record the **Color**, **Depth**, and **Infrared** sequences captured from Kinect V2. These three different sequences are somehow synchronized in hardware. The depth and infrared frames are captured in the exact same time, followed by the color frame (~ 6 ms later).
+KinectV2Recorder is a Win32 program used to record the **Color**, **Depth**, and **Infrared** sequences captured from Kinect V2. These three different sequences are somehow synchronized in hardware (30 fps). The depth and infrared frames are captured in the exact same time, followed by the color frame (~ 6 ms later).
 
-    
+![alt tag](https://raw.githubusercontent.com/Po-Chen/KinectV2Recorder/master/image/KinectV2Recorder.png)
 
 ### Version
 1.0.0
 
-### Tech
+### System Requirements for Using Kinect V2
 
-Dillinger uses a number of open source projects to work properly:
+The system requirements for Kinect V2 according to [MSDN](https://msdn.microsoft.com/en-us/library/dn782036.aspx) are showed below.
 
-* [AngularJS] - HTML enhanced for web apps!
-* [Ace Editor] - awesome web-based text editor
-* [Marked] - a super fast port of Markdown to JavaScript
-* [Twitter Bootstrap] - great UI boilerplate for modern web apps
-* [node.js] - evented I/O for the backend
-* [Express] - fast node.js network app framework [@tjholowaychuk]
-* [Gulp] - the streaming build system
-* [keymaster.js] - awesome keyboard handler lib by [@thomasfuchs]
-* [jQuery] - duh
+##### a. Supported Operating Systems and Architectures
+* Windows 8 (x64)
+* Windows 8.1 (x64)
+* Windows 8 Embedded Standard (x64)
+* Windows 8.1 Embedded Standard (x64)
+* Windows 10 (x64)
 
-And of course Dillinger itself is open source with a [public repository][dill]
- on GitHub.
+##### b. Recommended Hardware Configuration
+* 64 bit (x64) processor
+* 4 GB Memory (or more)
+* i7 3.1 GHz (or higher)
+* Built-in USB 3.0 host controller (only **Intel** or **Renesas** chipset is supported).
+* DX11 capable graphics adapter
+* A Kinect v2 sensor, which includes a power hub and USB cabling.
+* **SSD** (for fast image storage)
 
-### Installation
+##### c. Software Requirements
+* Visual Studio 2012 or Visual Studio 2013 (or later)
+* Kinect for Windows SDK 2.0 ([download](https://www.microsoft.com/en-us/download/details.aspx?id=44561))
+* (Optional) Intel® Integrated Performance Primitives (IPP) ([download](https://software.intel.com/en-us/articles/free_ipp)) 
 
-You need Gulp installed globally:
+### Program Description
+Color images are stored in bmp format (24-bit per pixel). Depth and infrared images are stored in pgm format (16-bit per pixel). D2D is used to achieve real-time display. I further use Intel IPP in regards to optimization. To enable IPP, please following the project setup below.
 
-```sh
-$ npm i -g gulp
-```
+![alt tag](https://raw.githubusercontent.com/Po-Chen/KinectV2Recorder/master/image/Preprocessor.png)
 
-```sh
-$ git clone [git-repo-url] dillinger
-$ cd dillinger
-$ npm i -d
-$ gulp build --prod
-$ NODE_ENV=production node app
-```
-
-### Plugins
-
-Dillinger is currently extended with the following plugins
-
-* Dropbox
-* Github
-* Google Drive
-* OneDrive
-
-Readmes, how to use them in your own application can be found here:
-
-* [plugins/dropbox/README.md] [PlDb]
-* [plugins/github/README.md] [PlGh]
-* [plugins/googledrive/README.md] [PlGd]
-* [plugins/onedrive/README.md] [PlOd]
-
-### Development
-
-Want to contribute? Great!
-
-Dillinger uses Gulp + Webpack for fast developing.
-Make a change in your file and instantanously see your updates!
-
-Open your favorite Terminal and run these commands.
-
-First Tab:
-```sh
-$ node app
-```
-
-Second Tab:
-```sh
-$ gulp watch
-```
-
-(optional) Third:
-```sh
-$ karma start
-```
-
-### Docker
-Dillinger is very easy to install and deploy in a Docker container.
-
-By default, the Docker will expose port 80, so change this within the Dockerfile if necessary. When ready, simply use the Dockerfile to build the image. 
-
-```sh
-cd dillinger
-docker build -t <youruser>/dillinger:latest .
-```
-This will create the dillinger image and pull in the necessary dependencies. Once done, run the Docker and map the port to whatever you wish on your host. In this example, we simply map port 80 of the host to port 80 of the Docker (or whatever port was exposed in the Dockerfile):
-
-```sh
-docker run -d -p 80:80 --restart="always" <youruser>/dillinger:latest
-```
-
-Verify the deployment by navigating to your server address in your preferred browser.
-
-### N|Solid and NGINX
-
-More details coming soon.
-
-#### docker-compose.yml
-
-Change the path for the nginx conf mounting path to your full path, not mine!
-
-### Todos
-
- - Write Tests
- - Rethink Github Save
- - Add Code Comments
- - Add Night Mode
-
-License
-----
-
-MIT
-
-
-**Free Software, Hell Yeah!**
-
-[//]: # (These are reference links used in the body of this note and get stripped out when the markdown processor does its job. There is no need to format nicely because it shouldn't be seen. Thanks SO - http://stackoverflow.com/questions/4823468/store-comments-in-markdown-syntax)
-
-
-   [dill]: <https://github.com/joemccann/dillinger>
-   [git-repo-url]: <https://github.com/joemccann/dillinger.git>
-   [john gruber]: <http://daringfireball.net>
-   [@thomasfuchs]: <http://twitter.com/thomasfuchs>
-   [df1]: <http://daringfireball.net/projects/markdown/>
-   [marked]: <https://github.com/chjj/marked>
-   [Ace Editor]: <http://ace.ajax.org>
-   [node.js]: <http://nodejs.org>
-   [Twitter Bootstrap]: <http://twitter.github.com/bootstrap/>
-   [keymaster.js]: <https://github.com/madrobby/keymaster>
-   [jQuery]: <http://jquery.com>
-   [@tjholowaychuk]: <http://twitter.com/tjholowaychuk>
-   [express]: <http://expressjs.com>
-   [AngularJS]: <http://angularjs.org>
-   [Gulp]: <http://gulpjs.com>
-
-   [PlDb]: <https://github.com/joemccann/dillinger/tree/master/plugins/dropbox/README.md>
-   [PlGh]:  <https://github.com/joemccann/dillinger/tree/master/plugins/github/README.md>
-   [PlGd]: <https://github.com/joemccann/dillinger/tree/master/plugins/googledrive/README.md>
-   [PlOd]: <https://github.com/joemccann/dillinger/tree/master/plugins/onedrive/README.md>
-
+![alt tag](https://raw.githubusercontent.com/Po-Chen/KinectV2Recorder/master/image/UseIntelIPP.png)

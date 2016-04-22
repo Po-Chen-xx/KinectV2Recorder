@@ -2,18 +2,18 @@
 //
 // Author: Po-Chen Wu (pcwu0329@gmail.com)
 //
-// These codes are written mainly based on codes in Kinect for Windows SDK 2.0
+// These codes are written mainly based on codes from Kinect for Windows SDK 2.0
+// https://www.microsoft.com/en-us/download/details.aspx?id=44561
 
-//------------------------------------------------------------------------------
-// <copyright file="ColorBasics.cpp" company="Microsoft">
-//     Copyright (c) Microsoft Corporation.  All rights reserved.
-// </copyright>
-//------------------------------------------------------------------------------
 
 #include "stdafx.h"
 #include <strsafe.h>
 #include "resource.h"
 #include "KinectV2Recorder.h"
+
+#ifdef USE_IPP
+#include <ippi.h>
+#endif
 
 /// <summary>
 /// Entry point for the application
@@ -63,6 +63,7 @@ CKinectV2Recorder::CKinectV2Recorder() :
     m_pColorRGBX(NULL),
     m_pInfraredUINT16(NULL),
     m_pDepthUINT16(NULL),
+    m_pColorRGB(NULL),
     m_nModel2DIndex(0),
     m_nModel3DIndex(0),
     m_nTypeIndex(0),
@@ -89,6 +90,9 @@ CKinectV2Recorder::CKinectV2Recorder() :
 
     // create heap storage for depth pixel data in UINT16 format
     m_pDepthUINT16 = new UINT16[cDepthWidth * cDepthHeight];
+
+    // create heap storage for color pixel data in RGB format
+    m_pColorRGB = new RGBTRIPLE[cColorWidth * cColorHeight];
 }
   
 
@@ -144,6 +148,12 @@ CKinectV2Recorder::~CKinectV2Recorder()
     {
         delete[] m_pDepthUINT16;
         m_pDepthUINT16 = NULL;
+    }
+
+    if (m_pColorRGB)
+    {
+        delete[] m_pColorRGB;
+        m_pColorRGB = NULL;
     }
 
     // clean up Direct2D
@@ -833,7 +843,7 @@ void CKinectV2Recorder::ProcessInfrared(INT64 nTime, const UINT16* pBuffer, int 
     
     if (m_pInfraredRGBX && pBuffer && (nWidth == cInfraredWidth) && (nHeight == cInfraredHeight))
     {
-        RGBQUAD* pDest = m_pInfraredRGBX;
+        RGBQUAD* pRGBX = m_pInfraredRGBX;
         UINT16* pUINT16 = m_pInfraredUINT16;
 
         // end pixel is start + width*height - 1
@@ -858,14 +868,14 @@ void CKinectV2Recorder::ProcessInfrared(INT64 nTime, const UINT16* pBuffer, int 
 			// 5. converting the normalized value to a byte and using the result
 			// as the RGB components required by the image
 			byte intensity = static_cast<byte>(intensityRatio * 255.0f); 
-			pDest->rgbRed = intensity;
-			pDest->rgbGreen = intensity;
-			pDest->rgbBlue = intensity;
+            pRGBX->rgbRed = intensity;
+            pRGBX->rgbGreen = intensity;
+            pRGBX->rgbBlue = intensity;
 
             // convert UINT16 to Big-Endian format
             (*pUINT16) = ((*pBuffer) >> 8) | ((*pBuffer) << 8);
 
-			++pDest;
+            ++pRGBX;
             ++pBuffer;
             ++pUINT16;
         }
@@ -992,6 +1002,27 @@ void CKinectV2Recorder::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, 
     // Make sure we've received valid data
     if (pBuffer && (nWidth == cColorWidth) && (nHeight == cColorHeight))
     {
+#ifdef USE_IPP
+        const IppiSize roiSize = { cColorWidth, cColorHeight };
+        ippiCopy_8u_AC4C3R((Ipp8u*)pBuffer, cColorWidth * 4, (Ipp8u*)m_pColorRGB, cColorWidth * 3, roiSize);  // RGBA to RGB
+#else
+        RGBQUAD* pRGBX = pBuffer;
+        RGBTRIPLE* pRGB = m_pColorRGB;
+        
+        // end pixel is start + width*height - 1
+        const RGBQUAD* pBufferEnd = pBuffer + (nWidth * nHeight);
+        
+        while (pRGBX < pBufferEnd)
+        {
+            pRGB->rgbtRed = pRGBX->rgbRed;
+            pRGB->rgbtGreen = pRGBX->rgbGreen;
+            pRGB->rgbtBlue = pRGBX->rgbBlue;
+        
+            ++pRGBX;
+            ++pRGB;
+        }
+#endif
+
         // Draw the data with Direct2D
         m_pDrawColor->Draw(reinterpret_cast<BYTE*>(pBuffer), cColorWidth * cColorHeight * sizeof(RGBQUAD));
 
@@ -1008,7 +1039,7 @@ void CKinectV2Recorder::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, 
 
             StringCchPrintfW(szColorSaveFolder, _countof(szColorSaveFolder), L"%s\\%011.6f.bmp", szColorSaveFolder, (nTime - m_nStartTime) / 10000000.);
             // Write out the bitmap to disk
-            HRESULT hr = SaveToBMP(reinterpret_cast<BYTE*>(m_pColorRGBX), nWidth, nHeight, sizeof(RGBQUAD)* 8, szColorSaveFolder);
+            HRESULT hr = SaveToBMP(reinterpret_cast<BYTE*>(m_pColorRGB), nWidth, nHeight, sizeof(RGBTRIPLE)* 8, szColorSaveFolder);
         }
     }
 }

@@ -2,13 +2,9 @@
 //
 // Author: Po-Chen Wu (pcwu0329@gmail.com)
 //
-// These codes are written mainly based on codes in Kinect for Windows SDK 2.0
+// These codes are written mainly based on codes from Kinect for Windows SDK 2.0
+// https://www.microsoft.com/en-us/download/details.aspx?id=44561
 
-//------------------------------------------------------------------------------
-// <copyright file="ColorBasics.h" company="Microsoft">
-//     Copyright (c) Microsoft Corporation.  All rights reserved.
-// </copyright>
-//------------------------------------------------------------------------------
 
 #pragma once
 
@@ -119,6 +115,7 @@ private:
     RGBQUAD*                m_pColorRGBX;
     UINT16*                 m_pInfraredUINT16;
     UINT16*                 m_pDepthUINT16;
+    RGBTRIPLE*              m_pColorRGB;
 
     // Index
     UINT                    m_nModel2DIndex;
