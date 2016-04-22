@@ -34,7 +34,7 @@ The system requirements for Kinect V2 according to [MSDN](https://msdn.microsoft
 * (Optional) Intel® Integrated Performance Primitives (IPP) ([download](https://software.intel.com/en-us/articles/free_ipp)) 
 
 ### Program Description
-Color images are stored in bmp format (24-bit per pixel). Depth and infrared images are stored in pgm format (16-bit per pixel). D2D is used to achieve real-time display. I further use Intel IPP in regards to optimization. To enable IPP, please following the project setup below.
+Color images are stored in bmp format (24-bit per pixel). Depth and infrared images are stored in pgm format (16-bit per pixel). D2D is used to achieve real-time display. I further use Intel IPP in regards to optimization. To enable IPP, please following the project setup showed below.
 
 ![alt tag](https://raw.githubusercontent.com/Po-Chen/KinectV2Recorder/master/image/UseIntelIPP.png)
 
