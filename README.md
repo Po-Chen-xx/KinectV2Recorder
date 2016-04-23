@@ -8,7 +8,7 @@ KinectV2Recorder is a Win32 program used to record the **Color**, **Depth**, and
 ### Version
 1.0.0
 
-### System Requirements for Using Kinect V2
+### System Requirements for Using Kinect V2 Recorder
 
 The system requirements for Kinect V2 according to [MSDN](https://msdn.microsoft.com/en-us/library/dn782036.aspx) are showed below.
 
@@ -34,7 +34,7 @@ The system requirements for Kinect V2 according to [MSDN](https://msdn.microsoft
 * (Optional) Intel® Integrated Performance Primitives (IPP) ([download](https://software.intel.com/en-us/articles/free_ipp)) 
 
 ### Program Description
-Color images are stored in bmp format (24-bit per pixel). Depth and infrared images are stored in pgm format (16-bit per pixel). D2D is used to achieve real-time display. I further use Intel IPP in regards to optimization. To enable IPP, please following the project setup showed below.
+Color images are stored in **BMP** format (24-bit per pixel). Depth and infrared images are stored in **PGM** format (16-bit per pixel). D2D is used to achieve real-time display. I further use Intel IPP in regards to optimization. To enable using IPP, please following the project setup showed below.
 
 ![alt tag](https://raw.githubusercontent.com/Po-Chen/KinectV2Recorder/master/image/UseIntelIPP.png)
 
