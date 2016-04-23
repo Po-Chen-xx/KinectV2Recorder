@@ -36,3 +36,10 @@ Color images are stored in **BMP** format (24-bit per pixel). Depth and infrared
 ![alt tag](https://raw.githubusercontent.com/Po-Chen/KinectV2Recorder/master/image/UseIntelIPP.png)
 
 ![alt tag](https://raw.githubusercontent.com/Po-Chen/KinectV2Recorder/master/image/Preprocessor.png)
+
+### IPP DLL
+Here are the necessary dlls in this program.  
+[C:\Program Files (x86)\IntelSWTools\compilers_and_libraries_2016.2.180\windows\redist\ia32_win\ipp]
+ -  ippi-9.0.dll
+ -  ippcore-9.0.dll
+ -  ippiw7-9.0.dll
