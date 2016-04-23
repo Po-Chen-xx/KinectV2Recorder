@@ -5,9 +5,6 @@ KinectV2Recorder is a Win32 program used to record the **Color**, **Depth**, and
 
 ![alt tag](https://raw.githubusercontent.com/Po-Chen/KinectV2Recorder/master/image/KinectV2Recorder.png)
 
-### Version
-1.0.0
-
 ### System Requirements for Using Kinect V2 Recorder
 
 The system requirements for Kinect V2 according to [MSDN](https://msdn.microsoft.com/en-us/library/dn782036.aspx) are showed below.

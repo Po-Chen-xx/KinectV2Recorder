@@ -954,12 +954,20 @@ void CKinectV2Recorder::ProcessDepth(INT64 nTime, const UINT16* pBuffer, int nWi
 
             // Note: Using conditionals in this loop could degrade performance.
             // Consider using a lookup table instead when writing production code.
-            if ((depth < nMinDepth) || (depth > nMaxDepth)) depth = 0;
-            BYTE intensity = static_cast<BYTE>(depth % 256);
-
-            pRGBX->rgbRed   = intensity;
-            pRGBX->rgbGreen = intensity;
-            pRGBX->rgbBlue  = intensity;
+            if ((depth < nMinDepth) || (depth > nMaxDepth))
+            {
+                depth = 0;
+                pRGBX->rgbRed = 34;
+                pRGBX->rgbGreen = 132;
+                pRGBX->rgbBlue = 212;
+            }
+            else
+            {
+                BYTE intensity = static_cast<BYTE>(depth % 256);
+                pRGBX->rgbRed = intensity;
+                pRGBX->rgbGreen = intensity;
+                pRGBX->rgbBlue = intensity;
+            }
 
             // convert UINT16 to Big-Endian format
             (*pUINT16) = ((depth) >> 8) | ((depth) << 8);
