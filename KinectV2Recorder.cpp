@@ -10,6 +10,7 @@
 #include <strsafe.h>
 #include "resource.h"
 #include "KinectV2Recorder.h"
+#include <algorithm>
 
 #ifdef USE_IPP
 #include <ippi.h>
@@ -23,8 +24,8 @@
 /// <param name="lpCmdLine">command line arguments</param>
 /// <param name="nCmdShow">whether to display minimized, maximized, or normally</param>
 /// <returns>status</returns>
-int APIENTRY wWinMain(    
-	_In_ HINSTANCE hInstance,
+int APIENTRY wWinMain(
+    _In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
     _In_ LPWSTR lpCmdLine,
     _In_ int nShowCmd
@@ -41,41 +42,41 @@ int APIENTRY wWinMain(
 /// Constructor
 /// </summary>
 CKinectV2Recorder::CKinectV2Recorder() :
-    m_hWnd(NULL),
-    m_nStartTime(0),
-    m_nLastCounter(0),
-    m_nFramesSinceUpdate(0),
-    m_fFreq(0),
-    m_nNextStatusTime(0LL),
-    m_bRecord(false),
-    m_bColorSynchronized(false),
-    m_bSelect2D(true),
-    m_pKinectSensor(NULL),
-    m_pInfraredFrameReader(NULL),
-    m_pDepthFrameReader(NULL),
-    m_pColorFrameReader(NULL),
-    m_pD2DFactory(NULL),
-    m_pDrawInfrared(NULL),
-    m_pDrawDepth(NULL),
-    m_pDrawColor(NULL),
-    m_pInfraredRGBX(NULL),
-    m_pDepthRGBX(NULL),
-    m_pColorRGBX(NULL),
-    m_pInfraredUINT16(NULL),
-    m_pDepthUINT16(NULL),
-    m_pColorRGB(NULL),
-    m_nModel2DIndex(0),
-    m_nModel3DIndex(0),
-    m_nTypeIndex(0),
-    m_nLevelIndex(0),
-    m_nSideIndex(0)
+m_hWnd(NULL),
+m_nStartTime(0),
+m_nLastCounter(0),
+m_nFramesSinceUpdate(0),
+m_fFreq(0),
+m_nNextStatusTime(0LL),
+m_bRecord(false),
+m_bColorSynchronized(false),
+m_bSelect2D(true),
+m_pKinectSensor(NULL),
+m_pInfraredFrameReader(NULL),
+m_pDepthFrameReader(NULL),
+m_pColorFrameReader(NULL),
+m_pD2DFactory(NULL),
+m_pDrawInfrared(NULL),
+m_pDrawDepth(NULL),
+m_pDrawColor(NULL),
+m_pInfraredRGBX(NULL),
+m_pDepthRGBX(NULL),
+m_pColorRGBX(NULL),
+m_pInfraredUINT16(NULL),
+m_pDepthUINT16(NULL),
+m_pColorRGB(NULL),
+m_nModel2DIndex(0),
+m_nModel3DIndex(0),
+m_nTypeIndex(0),
+m_nLevelIndex(0),
+m_nSideIndex(0)
 {
-    LARGE_INTEGER qpf = {0};
+    LARGE_INTEGER qpf = { 0 };
     if (QueryPerformanceFrequency(&qpf))
     {
         m_fFreq = double(qpf.QuadPart);
     }
-    
+
     // create heap storage for infrared pixel data in RGBX format
     m_pInfraredRGBX = new RGBQUAD[cInfraredWidth * cInfraredHeight];
 
@@ -94,7 +95,7 @@ CKinectV2Recorder::CKinectV2Recorder() :
     // create heap storage for color pixel data in RGB format
     m_pColorRGB = new RGBTRIPLE[cColorWidth * cColorHeight];
 }
-  
+
 
 /// <summary>
 /// Destructor
@@ -119,7 +120,7 @@ CKinectV2Recorder::~CKinectV2Recorder()
         delete m_pDrawColor;
         m_pDrawColor = NULL;
     }
-    
+
     if (m_pInfraredRGBX)
     {
         delete[] m_pInfraredRGBX;
@@ -128,7 +129,7 @@ CKinectV2Recorder::~CKinectV2Recorder()
 
     if (m_pDepthRGBX)
     {
-        delete [] m_pDepthRGBX;
+        delete[] m_pDepthRGBX;
         m_pDepthRGBX = NULL;
     }
 
@@ -161,7 +162,7 @@ CKinectV2Recorder::~CKinectV2Recorder()
 
     // done with infrared frame reader
     SafeRelease(m_pInfraredFrameReader);
-    
+
     // done with depth frame reader
     SafeRelease(m_pDepthFrameReader);
 
@@ -184,16 +185,16 @@ CKinectV2Recorder::~CKinectV2Recorder()
 /// <param name="nCmdShow">whether to display minimized, maximized, or normally</param>
 int CKinectV2Recorder::Run(HINSTANCE hInstance, int nCmdShow)
 {
-    MSG       msg = {0};
+    MSG       msg = { 0 };
     WNDCLASS  wc;
 
     // Dialog custom window class
     ZeroMemory(&wc, sizeof(wc));
-    wc.style         = CS_HREDRAW | CS_VREDRAW;
-    wc.cbWndExtra    = DLGWINDOWEXTRA;
-    wc.hCursor       = LoadCursorW(NULL, IDC_ARROW);
-    wc.hIcon         = LoadIconW(hInstance, MAKEINTRESOURCE(IDI_APP));
-    wc.lpfnWndProc   = DefDlgProcW;
+    wc.style = CS_HREDRAW | CS_VREDRAW;
+    wc.cbWndExtra = DLGWINDOWEXTRA;
+    wc.hCursor = LoadCursorW(NULL, IDC_ARROW);
+    wc.hIcon = LoadIconW(hInstance, MAKEINTRESOURCE(IDI_APP));
+    wc.lpfnWndProc = DefDlgProcW;
     wc.lpszClassName = L"KinectV2RecorderAppDlgWndClass";
 
     if (!RegisterClassW(&wc))
@@ -206,7 +207,7 @@ int CKinectV2Recorder::Run(HINSTANCE hInstance, int nCmdShow)
         NULL,
         MAKEINTRESOURCE(IDD_APP),
         NULL,
-        (DLGPROC)CKinectV2Recorder::MessageRouter, 
+        (DLGPROC)CKinectV2Recorder::MessageRouter,
         reinterpret_cast<LPARAM>(this));
 
     // Show window
@@ -242,7 +243,7 @@ void CKinectV2Recorder::Update()
     {
         return;
     }
-    
+
     INT64 currentInfraredFrameTime = 0;
     INT64 currentDepthFrameTime = 0;
     INT64 currentColorFrameTime = 0;
@@ -252,7 +253,7 @@ void CKinectV2Recorder::Update()
     IDepthFrame* pDepthFrame = NULL;
     IColorFrame* pColorFrame = NULL;
 
-    
+
     // Get an infrared frame from Kinect
     HRESULT hrInfrared = m_pInfraredFrameReader->AcquireLatestFrame(&pInfraredFrame);
     // Get a depth frame from Kinect
@@ -289,7 +290,7 @@ void CKinectV2Recorder::Update()
 
         if (SUCCEEDED(hr))
         {
-            hr = pInfraredFrame->AccessUnderlyingBuffer(&nBufferSize, &pBuffer);            
+            hr = pInfraredFrame->AccessUnderlyingBuffer(&nBufferSize, &pBuffer);
         }
 
         if (SUCCEEDED(hr))
@@ -301,7 +302,7 @@ void CKinectV2Recorder::Update()
     }
 
     SafeRelease(pInfraredFrame);
-    
+
     if (SUCCEEDED(hrDepth))
     {
         INT64 currentDepthFrameTime = 0;
@@ -343,7 +344,7 @@ void CKinectV2Recorder::Update()
 
         if (SUCCEEDED(hr))
         {
-            hr = pDepthFrame->AccessUnderlyingBuffer(&nBufferSize, &pBuffer);            
+            hr = pDepthFrame->AccessUnderlyingBuffer(&nBufferSize, &pBuffer);
         }
 
         if (SUCCEEDED(hr))
@@ -355,7 +356,7 @@ void CKinectV2Recorder::Update()
     }
 
     SafeRelease(pDepthFrame);
-    
+
     if (SUCCEEDED(hrColor))
     {
         INT64 currentColorFrameTime = 0;
@@ -399,7 +400,8 @@ void CKinectV2Recorder::Update()
             {
                 pBuffer = m_pColorRGBX;
                 nBufferSize = cColorWidth * cColorHeight * sizeof(RGBQUAD);
-                hr = pColorFrame->CopyConvertedFrameDataToArray(nBufferSize, reinterpret_cast<BYTE*>(pBuffer), ColorImageFormat_Bgra);            
+                hr = pColorFrame->CopyConvertedFrameDataToArray(nBufferSize, reinterpret_cast<BYTE*>(pBuffer), ColorImageFormat_Bgra);
+
             }
             else
             {
@@ -423,10 +425,10 @@ void CKinectV2Recorder::Update()
 /// </summary>
 void CKinectV2Recorder::InitializeUIControls()
 {
-    const wchar_t *Models[] = {L"Wing", L"Duck", L"City", L"Beach", L"Firework", L"Maple"};
+    const wchar_t *Models[] = { L"Wing", L"Duck", L"City", L"Beach", L"Firework", L"Maple" };
     const wchar_t *Types[] = { L"Translation", L"Zoom", L"In-plane Rotation", L"Out-of-plane Rotation",
-                              L"Flashing Light", L"Moving Light", L"Free Movement" };
-    const wchar_t *Levels[] = { L"1", L"2", L"3", L"4",  L"5" };
+        L"Flashing Light", L"Moving Light", L"Free Movement" };
+    const wchar_t *Levels[] = { L"1", L"2", L"3", L"4", L"5" };
     const wchar_t *Sides[] = { L"Front", L"Left", L"Back", L"Right" };
 
     // Set the radio button for selection between 2D and 3D
@@ -438,7 +440,7 @@ void CKinectV2Recorder::InitializeUIControls()
     {
         CheckDlgButton(m_hWnd, IDC_3D, BST_CHECKED);
     }
-    
+
     for (int i = 0; i < 6; i++)
     {
         SendDlgItemMessage(m_hWnd, IDC_MODEL_CBO, CB_ADDSTRING, 0, (LPARAM)Models[i]);
@@ -492,7 +494,7 @@ void CKinectV2Recorder::ProcessUI(WPARAM wParam, LPARAM)
     if (IDC_2D == LOWORD(wParam) && BN_CLICKED == HIWORD(wParam))
     {
         m_bSelect2D = true;
-        SendDlgItemMessage(m_hWnd, IDC_MODEL_CBO, CB_RESETCONTENT, 0, 0 );
+        SendDlgItemMessage(m_hWnd, IDC_MODEL_CBO, CB_RESETCONTENT, 0, 0);
         for (int i = 0; i < 6; i++)
         {
             SendDlgItemMessage(m_hWnd, IDC_MODEL_CBO, CB_ADDSTRING, 0, (LPARAM)Model2D[i]);
@@ -560,54 +562,54 @@ void CKinectV2Recorder::ProcessUI(WPARAM wParam, LPARAM)
     {
         switch (m_nModel2DIndex)
         {
-            case 0: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"2D\\wi"); break;
-            case 1: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"2D\\du"); break;
-            case 2: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"2D\\ci"); break;
-            case 3: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"2D\\be"); break;
-            case 4: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"2D\\fi"); break;
-            case 5: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"2D\\ma"); break;
+        case 0: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"2D\\wi"); break;
+        case 1: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"2D\\du"); break;
+        case 2: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"2D\\ci"); break;
+        case 3: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"2D\\be"); break;
+        case 4: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"2D\\fi"); break;
+        case 5: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"2D\\ma"); break;
         }
     }
     else{
         switch (m_nModel3DIndex)
         {
-            case 0: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"3D\\so"); break;
-            case 1: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"3D\\ch"); break;
-            case 2: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"3D\\ir"); break;
-            case 3: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"3D\\ho"); break;
-            case 4: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"3D\\bi"); break;
-            case 5: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"3D\\je"); break;
+        case 0: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"3D\\so"); break;
+        case 1: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"3D\\ch"); break;
+        case 2: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"3D\\ir"); break;
+        case 3: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"3D\\ho"); break;
+        case 4: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"3D\\bi"); break;
+        case 5: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"3D\\je"); break;
         }
     }
     switch (m_nTypeIndex)
     {
-        case 0: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_tr", m_cSaveFolder); break;
-        case 1: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_zo", m_cSaveFolder); break;
-        case 2: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_ir", m_cSaveFolder); break;
-        case 3: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_or", m_cSaveFolder); break;
-        case 4: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_fl", m_cSaveFolder); break;
-        case 5: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_ml", m_cSaveFolder); break;
-        case 6: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_fm", m_cSaveFolder); break;
+    case 0: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_tr", m_cSaveFolder); break;
+    case 1: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_zo", m_cSaveFolder); break;
+    case 2: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_ir", m_cSaveFolder); break;
+    case 3: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_or", m_cSaveFolder); break;
+    case 4: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_fl", m_cSaveFolder); break;
+    case 5: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_ml", m_cSaveFolder); break;
+    case 6: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_fm", m_cSaveFolder); break;
     }
     if (m_nTypeIndex < 4)
     {
         switch (m_nLevelIndex)
         {
-            case 0: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_1", m_cSaveFolder); break;
-            case 1: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_2", m_cSaveFolder); break;
-            case 2: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_3", m_cSaveFolder); break;
-            case 3: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_4", m_cSaveFolder); break;
-            case 4: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_5", m_cSaveFolder); break;
+        case 0: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_1", m_cSaveFolder); break;
+        case 1: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_2", m_cSaveFolder); break;
+        case 2: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_3", m_cSaveFolder); break;
+        case 3: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_4", m_cSaveFolder); break;
+        case 4: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_5", m_cSaveFolder); break;
         }
     }
     if (!m_bSelect2D)
     {
         switch (m_nSideIndex)
         {
-            case 0: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_f", m_cSaveFolder); break;
-            case 1: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_l", m_cSaveFolder); break;
-            case 2: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_b", m_cSaveFolder); break;
-            case 3: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_r", m_cSaveFolder); break;
+        case 0: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_f", m_cSaveFolder); break;
+        case 1: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_l", m_cSaveFolder); break;
+        case 2: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_b", m_cSaveFolder); break;
+        case 3: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_r", m_cSaveFolder); break;
         }
     }
     WCHAR szStatusMessage[64];
@@ -641,7 +643,7 @@ void CKinectV2Recorder::ProcessUI(WPARAM wParam, LPARAM)
 LRESULT CALLBACK CKinectV2Recorder::MessageRouter(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     CKinectV2Recorder* pThis = NULL;
-    
+
     if (WM_INITDIALOG == uMsg)
     {
         pThis = reinterpret_cast<CKinectV2Recorder*>(lParam);
@@ -675,68 +677,68 @@ LRESULT CALLBACK CKinectV2Recorder::DlgProc(HWND hWnd, UINT message, WPARAM wPar
 
     switch (message)
     {
-        case WM_INITDIALOG:
-        {
-            // Bind application window handle
-            m_hWnd = hWnd;
+    case WM_INITDIALOG:
+    {
+                          // Bind application window handle
+                          m_hWnd = hWnd;
 
-            InitializeUIControls();
+                          InitializeUIControls();
 
-            // Init Direct2D
-            D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &m_pD2DFactory);
+                          // Init Direct2D
+                          D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &m_pD2DFactory);
 
-            // Create and initialize a new Direct2D image renderer (take a look at ImageRenderer.h)
-            // We'll use this to draw the data we receive from the Kinect to the screen 
-            m_pDrawInfrared = new ImageRenderer();
-            HRESULT hr = m_pDrawInfrared->Initialize(GetDlgItem(m_hWnd, IDC_INFRAREDVIEW), m_pD2DFactory, cInfraredWidth, cInfraredHeight, cInfraredWidth * sizeof(RGBQUAD));
-            if (FAILED(hr))
-            {
-                SetStatusMessage(L"Failed to initialize the Direct2D draw device.", 10000, true);
-            }    
-            
-            m_pDrawDepth = new ImageRenderer();
-            hr = m_pDrawDepth->Initialize(GetDlgItem(m_hWnd, IDC_DEPTHVIEW), m_pD2DFactory, cDepthWidth, cDepthHeight, cDepthWidth * sizeof(RGBQUAD));
-            if (FAILED(hr))
-            {
-                SetStatusMessage(L"Failed to initialize the Direct2D draw device.", 10000, true);
-            }
-            
-            m_pDrawColor = new ImageRenderer();
-            hr = m_pDrawColor->Initialize(GetDlgItem(m_hWnd, IDC_COLORVIEW), m_pD2DFactory, cColorWidth, cColorHeight, cColorWidth * sizeof(RGBQUAD));
-            if (FAILED(hr))
-            {
-                SetStatusMessage(L"Failed to initialize the Direct2D draw device.", 10000, true);
-            }
+                          // Create and initialize a new Direct2D image renderer (take a look at ImageRenderer.h)
+                          // We'll use this to draw the data we receive from the Kinect to the screen 
+                          m_pDrawInfrared = new ImageRenderer();
+                          HRESULT hr = m_pDrawInfrared->Initialize(GetDlgItem(m_hWnd, IDC_INFRAREDVIEW), m_pD2DFactory, cInfraredWidth, cInfraredHeight, cInfraredWidth * sizeof(RGBQUAD));
+                          if (FAILED(hr))
+                          {
+                              SetStatusMessage(L"Failed to initialize the Direct2D draw device.", 10000, true);
+                          }
 
-            // Get and initialize the default Kinect sensor
-            InitializeDefaultSensor();
+                          m_pDrawDepth = new ImageRenderer();
+                          hr = m_pDrawDepth->Initialize(GetDlgItem(m_hWnd, IDC_DEPTHVIEW), m_pD2DFactory, cDepthWidth, cDepthHeight, cDepthWidth * sizeof(RGBQUAD));
+                          if (FAILED(hr))
+                          {
+                              SetStatusMessage(L"Failed to initialize the Direct2D draw device.", 10000, true);
+                          }
 
-            // Check if the necessary directories exist
-            if (!IsDirectoryExists(L"2D"))
-            {
-                CreateDirectory(L"2D", NULL);
-            }
-            if (!IsDirectoryExists(L"3D"))
-            {
-                CreateDirectory(L"3D", NULL);
-            }
-        }
+                          m_pDrawColor = new ImageRenderer();
+                          hr = m_pDrawColor->Initialize(GetDlgItem(m_hWnd, IDC_COLORVIEW), m_pD2DFactory, cColorWidth, cColorHeight, cColorWidth * sizeof(RGBQUAD));
+                          if (FAILED(hr))
+                          {
+                              SetStatusMessage(L"Failed to initialize the Direct2D draw device.", 10000, true);
+                          }
+
+                          // Get and initialize the default Kinect sensor
+                          InitializeDefaultSensor();
+
+                          // Check if the necessary directories exist
+                          if (!IsDirectoryExists(L"2D"))
+                          {
+                              CreateDirectory(L"2D", NULL);
+                          }
+                          if (!IsDirectoryExists(L"3D"))
+                          {
+                              CreateDirectory(L"3D", NULL);
+                          }
+    }
         break;
 
         // If the titlebar X is clicked, destroy app
-        case WM_CLOSE:
-            DestroyWindow(hWnd);
-            break;
+    case WM_CLOSE:
+        DestroyWindow(hWnd);
+        break;
 
-        case WM_DESTROY:
-            // Quit the main message pump
-            PostQuitMessage(0);
-            break;
+    case WM_DESTROY:
+        // Quit the main message pump
+        PostQuitMessage(0);
+        break;
 
         // Handle button press
-        case WM_COMMAND:
-            ProcessUI(wParam, lParam);
-            break;
+    case WM_COMMAND:
+        ProcessUI(wParam, lParam);
+        break;
     }
 
     return FALSE;
@@ -817,7 +819,7 @@ void CKinectV2Recorder::ProcessInfrared(INT64 nTime, const UINT16* pBuffer, int 
     {
         double fps = 0.0;
 
-        LARGE_INTEGER qpcNow = {0};
+        LARGE_INTEGER qpcNow = { 0 };
         if (m_fFreq)
         {
             if (QueryPerformanceCounter(&qpcNow))
@@ -840,44 +842,46 @@ void CKinectV2Recorder::ProcessInfrared(INT64 nTime, const UINT16* pBuffer, int 
             m_fFPS = fps;
         }
     }
-    
+
     if (m_pInfraredRGBX && pBuffer && (nWidth == cInfraredWidth) && (nHeight == cInfraredHeight))
     {
         RGBQUAD* pRGBX = m_pInfraredRGBX;
         UINT16* pUINT16 = m_pInfraredUINT16;
+        pBuffer += cInfraredWidth - 1;
 
-        // end pixel is start + width*height - 1
-        const UINT16* pBufferEnd = pBuffer + (nWidth * nHeight);
-
-        while (pBuffer < pBufferEnd)
+        for (int i = 0; i < cInfraredHeight; ++i)
         {
-			// normalize the incoming infrared data (ushort) to a float ranging from 
-			// [InfraredOutputValueMinimum, InfraredOutputValueMaximum] by
-			// 1. dividing the incoming value by the source maximum value
-			float intensityRatio = static_cast<float>(*pBuffer) / InfraredSourceValueMaximum;
+            for (int j = 0; j < cInfraredWidth; ++j)
+            {
+                // normalize the incoming infrared data (ushort) to a float ranging from 
+                // [InfraredOutputValueMinimum, InfraredOutputValueMaximum] by
+                // 1. dividing the incoming value by the source maximum value
+                float intensityRatio = static_cast<float>(*pBuffer) / InfraredSourceValueMaximum;
 
-			// 2. dividing by the (average scene value * standard deviations)
-			intensityRatio /= InfraredSceneValueAverage * InfraredSceneStandardDeviations;
-		
-			// 3. limiting the value to InfraredOutputValueMaximum
-			intensityRatio = min(InfraredOutputValueMaximum, intensityRatio);
+                // 2. dividing by the (average scene value * standard deviations)
+                intensityRatio /= InfraredSceneValueAverage * InfraredSceneStandardDeviations;
 
-			// 4. limiting the lower value InfraredOutputValueMinimym
-			intensityRatio = max(InfraredOutputValueMinimum, intensityRatio);
-	
-			// 5. converting the normalized value to a byte and using the result
-			// as the RGB components required by the image
-			byte intensity = static_cast<byte>(intensityRatio * 255.0f); 
-            pRGBX->rgbRed = intensity;
-            pRGBX->rgbGreen = intensity;
-            pRGBX->rgbBlue = intensity;
+                // 3. limiting the value to InfraredOutputValueMaximum
+                intensityRatio = min(InfraredOutputValueMaximum, intensityRatio);
 
-            // convert UINT16 to Big-Endian format
-            (*pUINT16) = ((*pBuffer) >> 8) | ((*pBuffer) << 8);
+                // 4. limiting the lower value InfraredOutputValueMinimym
+                intensityRatio = max(InfraredOutputValueMinimum, intensityRatio);
 
-            ++pRGBX;
-            ++pBuffer;
-            ++pUINT16;
+                // 5. converting the normalized value to a byte and using the result
+                // as the RGB components required by the image
+                byte intensity = static_cast<byte>(intensityRatio * 255.0f);
+                pRGBX->rgbRed = intensity;
+                pRGBX->rgbGreen = intensity;
+                pRGBX->rgbBlue = intensity;
+
+                // convert UINT16 to Big-Endian format
+                (*pUINT16) = ((*pBuffer) >> 8) | ((*pBuffer) << 8);
+
+                --pBuffer;
+                ++pRGBX;
+                ++pUINT16;
+            }
+            pBuffer += (cInfraredWidth << 1);
         }
 
         // Draw the data with Direct2D
@@ -893,14 +897,14 @@ void CKinectV2Recorder::ProcessInfrared(INT64 nTime, const UINT16* pBuffer, int 
                         L"The related folder is not emtpy!\n",
                         L"Frames already existed",
                         MB_OK | MB_ICONERROR
-                    );
+                        );
                     m_bRecord = false;
                     SendDlgItemMessage(m_hWnd, IDC_BUTTON_RECORD, BM_SETIMAGE, (WPARAM)IMAGE_ICON, (LPARAM)m_hRecord);
                     return;
                 }
                 m_nStartTime = nTime;
-            }            
-            
+            }
+
             if (!IsDirectoryExists(m_cSaveFolder))
             {
                 CreateDirectory(m_cSaveFolder, NULL);
@@ -916,7 +920,7 @@ void CKinectV2Recorder::ProcessInfrared(INT64 nTime, const UINT16* pBuffer, int 
             }
 
             StringCchPrintfW(szInfraredSaveFolder, _countof(szInfraredSaveFolder), L"%s\\%011.6f.pgm", szInfraredSaveFolder, (nTime - m_nStartTime) / 10000000.);
-            
+
             // Write out the bitmap to disk
             HRESULT hr = SaveToPGM(reinterpret_cast<BYTE*>(m_pInfraredUINT16), nWidth, nHeight, sizeof(UINT16)* 8, 65535, szInfraredSaveFolder);
         }
@@ -939,42 +943,44 @@ void CKinectV2Recorder::ProcessDepth(INT64 nTime, const UINT16* pBuffer, int nWi
     {
         RGBQUAD* pRGBX = m_pDepthRGBX;
         UINT16* pUINT16 = m_pDepthUINT16;
+        pBuffer += cDepthWidth - 1;
 
-        // end pixel is start + width*height - 1
-        const UINT16* pBufferEnd = pBuffer + (nWidth * nHeight);
-
-        while (pBuffer < pBufferEnd)
+        for (int i = 0; i < cDepthHeight; ++i)
         {
-            USHORT depth = *pBuffer;
-
-            // To convert to a byte, we're discarding the most-significant
-            // rather than least-significant bits.
-            // We're preserving detail, although the intensity will "wrap."
-            // Values outside the reliable depth range are mapped to 0 (black).
-
-            // Note: Using conditionals in this loop could degrade performance.
-            // Consider using a lookup table instead when writing production code.
-            if ((depth < nMinDepth) || (depth > nMaxDepth))
+            for (int j = 0; j < cDepthWidth; ++j)
             {
-                depth = 0;
-                pRGBX->rgbRed = 34;
-                pRGBX->rgbGreen = 132;
-                pRGBX->rgbBlue = 212;
-            }
-            else
-            {
-                BYTE intensity = static_cast<BYTE>(depth % 256);
-                pRGBX->rgbRed = intensity;
-                pRGBX->rgbGreen = intensity;
-                pRGBX->rgbBlue = intensity;
-            }
+                USHORT depth = *pBuffer;
 
-            // convert UINT16 to Big-Endian format
-            (*pUINT16) = ((depth) >> 8) | ((depth) << 8);
+                // To convert to a byte, we're discarding the most-significant
+                // rather than least-significant bits.
+                // We're preserving detail, although the intensity will "wrap."
+                // Values outside the reliable depth range are mapped to 0 (black).
 
-            ++pRGBX;
-            ++pBuffer;
-            ++pUINT16;
+                // Note: Using conditionals in this loop could degrade performance.
+                // Consider using a lookup table instead when writing production code.
+                if ((depth < nMinDepth) || (depth > nMaxDepth))
+                {
+                    depth = 0;
+                    pRGBX->rgbRed = 34;
+                    pRGBX->rgbGreen = 132;
+                    pRGBX->rgbBlue = 212;
+                }
+                else
+                {
+                    BYTE intensity = static_cast<BYTE>(depth % 256);
+                    pRGBX->rgbRed = intensity;
+                    pRGBX->rgbGreen = intensity;
+                    pRGBX->rgbBlue = intensity;
+                }
+
+                // convert UINT16 to Big-Endian format
+                (*pUINT16) = ((depth) >> 8) | ((depth) << 8);
+
+                --pBuffer;
+                ++pRGBX;
+                ++pUINT16;
+            }
+            pBuffer += (cDepthWidth << 1);
         }
 
         // Draw the data with Direct2D
@@ -1012,20 +1018,29 @@ void CKinectV2Recorder::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, 
     {
 #ifdef USE_IPP
         const IppiSize roiSize = { cColorWidth, cColorHeight };
+        ippiMirror_8u_C4IR((Ipp8u*)pBuffer, cColorWidth * 4, roiSize, ippAxsVertical);
         ippiCopy_8u_AC4C3R((Ipp8u*)pBuffer, cColorWidth * 4, (Ipp8u*)m_pColorRGB, cColorWidth * 3, roiSize);  // RGBA to RGB
 #else
+        RGBQUAD* pBegin = pBuffer;
+        RGBQUAD* pEnd = pBuffer + cColorWidth;
+        for (int i = 0; i < cColorHeight; ++i)
+        {
+            std::reverse(pBegin, pEnd);
+            pBegin += cColorWidth;
+            pEnd += cColorWidth;
+        }
         RGBQUAD* pRGBX = pBuffer;
         RGBTRIPLE* pRGB = m_pColorRGB;
-        
+
         // end pixel is start + width*height - 1
         const RGBQUAD* pBufferEnd = pBuffer + (nWidth * nHeight);
-        
+
         while (pRGBX < pBufferEnd)
         {
             pRGB->rgbtRed = pRGBX->rgbRed;
             pRGB->rgbtGreen = pRGBX->rgbGreen;
             pRGB->rgbtBlue = pRGBX->rgbBlue;
-        
+
             ++pRGBX;
             ++pRGB;
         }
@@ -1087,53 +1102,53 @@ HRESULT CKinectV2Recorder::SaveToBMP(BYTE* pBitmapBits, LONG lWidth, LONG lHeigh
 {
     DWORD dwByteCount = lWidth * lHeight * (wBitsPerPixel / 8);
 
-    BITMAPINFOHEADER bmpInfoHeader = {0};
+    BITMAPINFOHEADER bmpInfoHeader = { 0 };
 
-    bmpInfoHeader.biSize        = sizeof(BITMAPINFOHEADER);  // Size of the header
-    bmpInfoHeader.biBitCount    = wBitsPerPixel;             // Bit count
+    bmpInfoHeader.biSize = sizeof(BITMAPINFOHEADER);  // Size of the header
+    bmpInfoHeader.biBitCount = wBitsPerPixel;             // Bit count
     bmpInfoHeader.biCompression = BI_RGB;                    // Standard RGB, no compression
-    bmpInfoHeader.biWidth       = lWidth;                    // Width in pixels
-    bmpInfoHeader.biHeight      = -lHeight;                  // Height in pixels, negative indicates it's stored right-side-up
-    bmpInfoHeader.biPlanes      = 1;                         // Default
-    bmpInfoHeader.biSizeImage   = dwByteCount;               // Image size in bytes
+    bmpInfoHeader.biWidth = lWidth;                    // Width in pixels
+    bmpInfoHeader.biHeight = -lHeight;                  // Height in pixels, negative indicates it's stored right-side-up
+    bmpInfoHeader.biPlanes = 1;                         // Default
+    bmpInfoHeader.biSizeImage = dwByteCount;               // Image size in bytes
 
-    BITMAPFILEHEADER bfh = {0};
+    BITMAPFILEHEADER bfh = { 0 };
 
-    bfh.bfType    = 0x4D42;                                           // 'M''B', indicates bitmap
+    bfh.bfType = 0x4D42;                                           // 'M''B', indicates bitmap
     bfh.bfOffBits = bmpInfoHeader.biSize + sizeof(BITMAPFILEHEADER);  // Offset to the start of pixel data
-    bfh.bfSize    = bfh.bfOffBits + bmpInfoHeader.biSizeImage;        // Size of image + headers
+    bfh.bfSize = bfh.bfOffBits + bmpInfoHeader.biSizeImage;        // Size of image + headers
 
     // Create the file on disk to write to
     HANDLE hFile = CreateFileW(lpszFilePath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
     // Return if error opening file
-    if (NULL == hFile) 
+    if (NULL == hFile)
     {
         return E_ACCESSDENIED;
     }
 
     DWORD dwBytesWritten = 0;
-    
+
     // Write the bitmap file header
     if (!WriteFile(hFile, &bfh, sizeof(bfh), &dwBytesWritten, NULL))
     {
         CloseHandle(hFile);
         return E_FAIL;
     }
-    
+
     // Write the bitmap info header
     if (!WriteFile(hFile, &bmpInfoHeader, sizeof(bmpInfoHeader), &dwBytesWritten, NULL))
     {
         CloseHandle(hFile);
         return E_FAIL;
     }
-    
+
     // Write the RGB Data
     if (!WriteFile(hFile, pBitmapBits, bmpInfoHeader.biSizeImage, &dwBytesWritten, NULL))
     {
         CloseHandle(hFile);
         return E_FAIL;
-    }    
+    }
 
     // Close the file
     CloseHandle(hFile);
