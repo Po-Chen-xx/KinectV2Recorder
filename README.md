@@ -20,7 +20,7 @@ The system requirements for Kinect V2 according to [MSDN](https://msdn.microsoft
 * 64 bit (x64) processor
 * 4 GB Memory (or more)
 * i7 3.1 GHz (or higher)
-* Built-in USB 3.0 host controller (only **Intel** or **Renesas** chipset is supported).
+* Built-in USB 3.0 host controller (only **Intel** or **Renesas** chipset is supported; Latest **ASMedia** chipset also works).
 * DX11 capable graphics adapter
 * A Kinect v2 sensor, which includes a power hub and USB cabling.
 * **SSD** (for fast image storage)
