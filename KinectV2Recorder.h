@@ -138,9 +138,19 @@ private:
     WCHAR                   m_cSaveFolder[MAX_PATH];
 
     /// <summary>
-    /// Main processing function
+    /// Main processing function for infrared frames
     /// </summary>
-    void                    Update();
+    void                    UpdateInfrared();
+
+    /// <summary>
+    /// Main processing function for depth frames
+    /// </summary>
+    void                    UpdateDepth();
+
+    /// <summary>
+    /// Main processing function for color frames
+    /// </summary>
+    void                    UpdateColor();
 
     /// <summary>
     /// Initialize the UI controls
