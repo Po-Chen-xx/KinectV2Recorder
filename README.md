@@ -37,6 +37,9 @@ Color images are stored in **BMP** format (24 bits per pixel). Depth and infrare
 
 ![alt tag](https://raw.githubusercontent.com/Po-Chen/KinectV2Recorder/master/image/Preprocessor.png)
 
+### Proper Display
+To facilitate better display of KinectV2Recorder, please go to your Desktop and right-click your mouse. Then go to Display Settings -> Display -> Change the size of text, apps, and other items: **100%**
+
 ### IPP DLL
 Here are the necessary dlls in this program.  
 [C:\Program Files (x86)\IntelSWTools\compilers_and_libraries_2016.2.180\windows\redist\ia32_win\ipp]

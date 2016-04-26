@@ -44,8 +44,12 @@ int APIENTRY wWinMain(
 CKinectV2Recorder::CKinectV2Recorder() :
 m_hWnd(NULL),
 m_nStartTime(0),
-m_nLastCounter(0),
-m_nFramesSinceUpdate(0),
+m_nInfraredLastCounter(0),
+m_nDepthLastCounter(0),
+m_nColorLastCounter(0),
+m_nInfraredFramesSinceUpdate(0),
+m_nDepthFramesSinceUpdate(0),
+m_nColorFramesSinceUpdate(0),
 m_fFreq(0),
 m_nNextStatusTime(0LL),
 m_bRecord(false),
@@ -612,8 +616,8 @@ void CKinectV2Recorder::ProcessUI(WPARAM wParam, LPARAM)
         case 3: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"%s_r", m_cSaveFolder); break;
         }
     }
-    WCHAR szStatusMessage[64];
-    StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L" Save Folder: %s    FPS = %0.2f", m_cSaveFolder, m_fFPS);
+    WCHAR szStatusMessage[128];
+    StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L" Save Folder: %s    FPS(Infrared, Depth, Color) = (%0.2f,  %0.2f,  %0.2f)", m_cSaveFolder, m_fInfraredFPS, m_fDepthFPS, m_fColorFPS);
     (SetStatusMessage(szStatusMessage, 500, true));
     // If it was for the record control and a button clicked event, save the video sequences
     if (IDC_BUTTON_RECORD == LOWORD(wParam) && BN_CLICKED == HIWORD(wParam))
@@ -824,22 +828,22 @@ void CKinectV2Recorder::ProcessInfrared(INT64 nTime, const UINT16* pBuffer, int 
         {
             if (QueryPerformanceCounter(&qpcNow))
             {
-                if (m_nLastCounter)
+                if (m_nInfraredLastCounter)
                 {
-                    m_nFramesSinceUpdate++;
-                    fps = m_fFreq * m_nFramesSinceUpdate / double(qpcNow.QuadPart - m_nLastCounter);
+                    m_nInfraredFramesSinceUpdate++;
+                    fps = m_fFreq * m_nInfraredFramesSinceUpdate / double(qpcNow.QuadPart - m_nInfraredLastCounter);
                 }
             }
         }
 
-        WCHAR szStatusMessage[64];
-        StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L" Save Folder: %s    FPS = %0.2f", m_cSaveFolder, fps);
+        WCHAR szStatusMessage[128];
+        StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L" Save Folder: %s    FPS(Infrared, Depth, Color) = (%0.2f,  %0.2f,  %0.2f)", m_cSaveFolder, m_fInfraredFPS, m_fDepthFPS, m_fColorFPS);
 
         if (SetStatusMessage(szStatusMessage, 1000, false))
         {
-            m_nLastCounter = qpcNow.QuadPart;
-            m_nFramesSinceUpdate = 0;
-            m_fFPS = fps;
+            m_nInfraredLastCounter = qpcNow.QuadPart;
+            m_nInfraredFramesSinceUpdate = 0;
+            m_fInfraredFPS = fps;
         }
     }
 
@@ -938,6 +942,34 @@ void CKinectV2Recorder::ProcessInfrared(INT64 nTime, const UINT16* pBuffer, int 
 /// </summary>
 void CKinectV2Recorder::ProcessDepth(INT64 nTime, const UINT16* pBuffer, int nWidth, int nHeight, USHORT nMinDepth, USHORT nMaxDepth)
 {
+    if (m_hWnd)
+    {
+        double fps = 0.0;
+
+        LARGE_INTEGER qpcNow = { 0 };
+        if (m_fFreq)
+        {
+            if (QueryPerformanceCounter(&qpcNow))
+            {
+                if (m_nDepthLastCounter)
+                {
+                    m_nDepthFramesSinceUpdate++;
+                    fps = m_fFreq * m_nDepthFramesSinceUpdate / double(qpcNow.QuadPart - m_nDepthLastCounter);
+                }
+            }
+        }
+
+        WCHAR szStatusMessage[128];
+        StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L" Save Folder: %s    FPS(Infrared, Depth, Color) = (%0.2f,  %0.2f,  %0.2f)", m_cSaveFolder, m_fInfraredFPS, m_fDepthFPS, m_fColorFPS);
+
+        if (m_nDepthFramesSinceUpdate % 10 == 0)
+        {
+            m_nDepthLastCounter = qpcNow.QuadPart;
+            m_nDepthFramesSinceUpdate = 0;
+            m_fDepthFPS = fps;
+        }
+    }
+
     // Make sure we've received valid data
     if (m_pDepthRGBX && pBuffer && (nWidth == cDepthWidth) && (nHeight == cDepthHeight))
     {
@@ -1013,6 +1045,34 @@ void CKinectV2Recorder::ProcessDepth(INT64 nTime, const UINT16* pBuffer, int nWi
 /// </summary>
 void CKinectV2Recorder::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, int nHeight)
 {
+    if (m_hWnd)
+    {
+        double fps = 0.0;
+
+        LARGE_INTEGER qpcNow = { 0 };
+        if (m_fFreq)
+        {
+            if (QueryPerformanceCounter(&qpcNow))
+            {
+                if (m_nColorLastCounter)
+                {
+                    m_nColorFramesSinceUpdate++;
+                    fps = m_fFreq * m_nColorFramesSinceUpdate / double(qpcNow.QuadPart - m_nColorLastCounter);
+                }
+            }
+        }
+
+        WCHAR szStatusMessage[128];
+        StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L" Save Folder: %s    FPS(Infrared, Depth, Color) = (%0.2f,  %0.2f,  %0.2f)", m_cSaveFolder, m_fInfraredFPS, m_fDepthFPS, m_fColorFPS);
+
+        if (m_nColorFramesSinceUpdate % 10 == 0)
+        {
+            m_nColorLastCounter = qpcNow.QuadPart;
+            m_nColorFramesSinceUpdate = 0;
+            m_fColorFPS = fps;
+        }
+    }
+
     // Make sure we've received valid data
     if (pBuffer && (nWidth == cColorWidth) && (nHeight == cColorHeight))
     {
@@ -1172,6 +1232,54 @@ HRESULT CKinectV2Recorder::SaveToPGM(BYTE* pBitmapBits, LONG lWidth, LONG lHeigh
     // Set save folder
     CHAR szHeader[256];
     sprintf_s(szHeader, _countof(szHeader), "P5\n%d %d\n%d\n", lWidth, lHeight, lMaxPixel);
+
+    // Create the file on disk to write to
+    HANDLE hFile = CreateFileW(lpszFilePath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+
+    // Return if error opening file
+    if (NULL == hFile)
+    {
+        return E_ACCESSDENIED;
+    }
+
+    DWORD dwBytesWritten = 0;
+
+    // Write the pgm file header
+    if (!WriteFile(hFile, szHeader, strlen(szHeader), &dwBytesWritten, NULL))
+    {
+        CloseHandle(hFile);
+        return E_FAIL;
+    }
+
+    // Write the grayscale data
+    if (!WriteFile(hFile, pBitmapBits, dwByteCount, &dwBytesWritten, NULL))
+    {
+        CloseHandle(hFile);
+        return E_FAIL;
+    }
+
+    // Close the file
+    CloseHandle(hFile);
+    return S_OK;
+}
+
+/// <summary>
+/// Save passed in image data to disk as a PPM file
+/// </summary>
+/// <param name="pBitmapBits">image data to save</param>
+/// <param name="lWidth">width (in pixels) of input image data</param>
+/// <param name="lHeight">height (in pixels) of input image data</param>
+/// <param name="wBitsPerPixel">bits per pixel of image data</param>
+/// <param name="lMaxPixel">max value of a pixel</param>
+/// <param name="lpszFilePath">full file path to output bitmap to</param>
+/// <returns>indicates success or failure</returns>
+HRESULT CKinectV2Recorder::SaveToPPM(BYTE* pBitmapBits, LONG lWidth, LONG lHeight, WORD wBitsPerPixel, LONG lMaxPixel, LPCWSTR lpszFilePath)
+{
+    DWORD dwByteCount = lWidth * lHeight * (wBitsPerPixel / 8);
+
+    // Set save folder
+    CHAR szHeader[256];
+    sprintf_s(szHeader, _countof(szHeader), "P6\n%d %d\n%d\n", lWidth, lHeight, lMaxPixel);
 
     // Create the file on disk to write to
     HANDLE hFile = CreateFileW(lpszFilePath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);

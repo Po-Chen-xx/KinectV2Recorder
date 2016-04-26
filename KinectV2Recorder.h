@@ -88,14 +88,20 @@ public:
 private:
     HWND                    m_hWnd;
     INT64                   m_nStartTime;
-    INT64                   m_nLastCounter;
+    INT64                   m_nInfraredLastCounter;
+    INT64                   m_nDepthLastCounter;
+    INT64                   m_nColorLastCounter;
     double                  m_fFreq;
     INT64                   m_nNextStatusTime;
-    DWORD                   m_nFramesSinceUpdate;
+    DWORD                   m_nInfraredFramesSinceUpdate;
+    DWORD                   m_nDepthFramesSinceUpdate;
+    DWORD                   m_nColorFramesSinceUpdate;
     bool                    m_bRecord;
     bool                    m_bColorSynchronized;
     bool                    m_bSelect2D;
-    double                  m_fFPS;
+    double                  m_fInfraredFPS;
+    double                  m_fDepthFPS;
+    double                  m_fColorFPS;
 
     // Current Kinect
     IKinectSensor*          m_pKinectSensor;
@@ -201,7 +207,7 @@ private:
     HRESULT                 SaveToBMP(BYTE* pBitmapBits, LONG lWidth, LONG lHeight, WORD wBitsPerPixel, LPCWSTR lpszFilePath);
 
     /// <summary>
-    /// Save passed in image data to disk as a pgm file
+    /// Save passed in image data to disk as a PGM file
     /// </summary>
     /// <param name="pBitmapBits">image data to save</param>
     /// <param name="lWidth">width (in pixels) of input image data</param>
@@ -211,6 +217,18 @@ private:
     /// <param name="lpszFilePath">full file path to output bitmap to</param>
     /// <returns>indicates success or failure</returns>
     HRESULT                 SaveToPGM(BYTE* pBitmapBits, LONG lWidth, LONG lHeight, WORD wBitsPerPixel, LONG lMaxPixel, LPCWSTR lpszFilePath);
+
+    /// <summary>
+    /// Save passed in image data to disk as a PPM file
+    /// </summary>
+    /// <param name="pBitmapBits">image data to save</param>
+    /// <param name="lWidth">width (in pixels) of input image data</param>
+    /// <param name="lHeight">height (in pixels) of input image data</param>
+    /// <param name="wBitsPerPixel">bits per pixel of image data</param>
+    /// <param name="lMaxPixel">max value of a pixel</param>
+    /// <param name="lpszFilePath">full file path to output bitmap to</param>
+    /// <returns>indicates success or failure</returns>
+    HRESULT                 SaveToPPM(BYTE* pBitmapBits, LONG lWidth, LONG lHeight, WORD wBitsPerPixel, LONG lMaxPixel, LPCWSTR lpszFilePath);
 
     /// <summary>
     /// Check if the directory exists
