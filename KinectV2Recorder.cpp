@@ -11,6 +11,7 @@
 #include "resource.h"
 #include "KinectV2Recorder.h"
 #include <algorithm>
+#include <vector>
 
 #ifdef USE_IPP
 #include <ippi.h>
@@ -73,7 +74,15 @@ m_nModel2DIndex(0),
 m_nModel3DIndex(0),
 m_nTypeIndex(0),
 m_nLevelIndex(0),
-m_nSideIndex(0)
+m_nSideIndex(0),
+m_tSaveThread(),
+m_StopThread(false),
+m_InfraredTime(-1),
+m_DepthTime(-1),
+m_ColorTime(-1),
+m_InfraredSaveTime(-1),
+m_DepthSaveTime(-1),
+m_ColorSaveTime(-1)
 {
     LARGE_INTEGER qpf = { 0 };
     if (QueryPerformanceFrequency(&qpf))
@@ -98,6 +107,11 @@ m_nSideIndex(0)
 
     // create heap storage for color pixel data in RGB format
     m_pColorRGB = new RGBTRIPLE[cColorWidth * cColorHeight];
+    
+    // create heap storage for file lists
+    m_InfraredList.reserve(1800);
+    m_DepthList.reserve(1800);
+    m_ColorList.reserve(1800);
 }
 
 
@@ -180,6 +194,9 @@ CKinectV2Recorder::~CKinectV2Recorder()
     }
 
     SafeRelease(m_pKinectSensor);
+
+    m_StopThread = true;
+    if (m_tSaveThread.joinable()) m_tSaveThread.join();
 }
 
 /// <summary>
@@ -236,6 +253,14 @@ int CKinectV2Recorder::Run(HINSTANCE hInstance, int nCmdShow)
     }
 
     return static_cast<int>(msg.wParam);
+}
+
+/// <summary>
+/// Start multithreading
+/// </summary>
+void CKinectV2Recorder::StartMultithreading()
+{
+    m_tSaveThread = std::thread(&CKinectV2Recorder::SaveImages, this);
 }
 
 /// <summary>
@@ -624,6 +649,16 @@ void CKinectV2Recorder::ProcessUI(WPARAM wParam, LPARAM)
     {
         if (m_bRecord)
         {
+            CheckImages();
+            m_InfraredTime = -1;
+            m_DepthTime = -1;
+            m_ColorTime = -1;
+            m_InfraredSaveTime = -1;
+            m_DepthSaveTime = -1;
+            m_ColorSaveTime = -1;
+            m_InfraredList.resize(0);
+            m_DepthList.resize(0);
+            m_ColorList.resize(0);
             m_bRecord = false;
             m_nStartTime = 0;
             SendDlgItemMessage(m_hWnd, IDC_BUTTON_RECORD, BM_SETIMAGE, (WPARAM)IMAGE_ICON, (LPARAM)m_hRecord);
@@ -683,53 +718,55 @@ LRESULT CALLBACK CKinectV2Recorder::DlgProc(HWND hWnd, UINT message, WPARAM wPar
     {
     case WM_INITDIALOG:
     {
-                          // Bind application window handle
-                          m_hWnd = hWnd;
+        // Bind application window handle
+        m_hWnd = hWnd;
 
-                          InitializeUIControls();
+        InitializeUIControls();
 
-                          // Init Direct2D
-                          D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &m_pD2DFactory);
+        // Init Direct2D
+        D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &m_pD2DFactory);
 
-                          // Create and initialize a new Direct2D image renderer (take a look at ImageRenderer.h)
-                          // We'll use this to draw the data we receive from the Kinect to the screen 
-                          m_pDrawInfrared = new ImageRenderer();
-                          HRESULT hr = m_pDrawInfrared->Initialize(GetDlgItem(m_hWnd, IDC_INFRAREDVIEW), m_pD2DFactory, cInfraredWidth, cInfraredHeight, cInfraredWidth * sizeof(RGBQUAD));
-                          if (FAILED(hr))
-                          {
-                              SetStatusMessage(L"Failed to initialize the Direct2D draw device.", 10000, true);
-                          }
+        // Create and initialize a new Direct2D image renderer (take a look at ImageRenderer.h)
+        // We'll use this to draw the data we receive from the Kinect to the screen 
+        m_pDrawInfrared = new ImageRenderer();
+        HRESULT hr = m_pDrawInfrared->Initialize(GetDlgItem(m_hWnd, IDC_INFRAREDVIEW), m_pD2DFactory, cInfraredWidth, cInfraredHeight, cInfraredWidth * sizeof(RGBQUAD));
+        if (FAILED(hr))
+        {
+            SetStatusMessage(L"Failed to initialize the Direct2D draw device.", 10000, true);
+        }
 
-                          m_pDrawDepth = new ImageRenderer();
-                          hr = m_pDrawDepth->Initialize(GetDlgItem(m_hWnd, IDC_DEPTHVIEW), m_pD2DFactory, cDepthWidth, cDepthHeight, cDepthWidth * sizeof(RGBQUAD));
-                          if (FAILED(hr))
-                          {
-                              SetStatusMessage(L"Failed to initialize the Direct2D draw device.", 10000, true);
-                          }
+        m_pDrawDepth = new ImageRenderer();
+        hr = m_pDrawDepth->Initialize(GetDlgItem(m_hWnd, IDC_DEPTHVIEW), m_pD2DFactory, cDepthWidth, cDepthHeight, cDepthWidth * sizeof(RGBQUAD));
+        if (FAILED(hr))
+        {
+            SetStatusMessage(L"Failed to initialize the Direct2D draw device.", 10000, true);
+        }
 
-                          m_pDrawColor = new ImageRenderer();
-                          hr = m_pDrawColor->Initialize(GetDlgItem(m_hWnd, IDC_COLORVIEW), m_pD2DFactory, cColorWidth, cColorHeight, cColorWidth * sizeof(RGBQUAD));
-                          if (FAILED(hr))
-                          {
-                              SetStatusMessage(L"Failed to initialize the Direct2D draw device.", 10000, true);
-                          }
+        m_pDrawColor = new ImageRenderer();
+        hr = m_pDrawColor->Initialize(GetDlgItem(m_hWnd, IDC_COLORVIEW), m_pD2DFactory, cColorWidth, cColorHeight, cColorWidth * sizeof(RGBQUAD));
+        if (FAILED(hr))
+        {
+            SetStatusMessage(L"Failed to initialize the Direct2D draw device.", 10000, true);
+        }
 
-                          // Get and initialize the default Kinect sensor
-                          InitializeDefaultSensor();
+        // Get and initialize the default Kinect sensor
+        InitializeDefaultSensor();
 
-                          // Check if the necessary directories exist
-                          if (!IsDirectoryExists(L"2D"))
-                          {
-                              CreateDirectory(L"2D", NULL);
-                          }
-                          if (!IsDirectoryExists(L"3D"))
-                          {
-                              CreateDirectory(L"3D", NULL);
-                          }
+        // Check if the necessary directories exist
+        if (!IsDirectoryExists(L"2D"))
+        {
+            CreateDirectory(L"2D", NULL);
+        }
+        if (!IsDirectoryExists(L"3D"))
+        {
+            CreateDirectory(L"3D", NULL);
+        }
+
+        StartMultithreading();
     }
-        break;
+    break;
 
-        // If the titlebar X is clicked, destroy app
+    // If the titlebar X is clicked, destroy app
     case WM_CLOSE:
         DestroyWindow(hWnd);
         break;
@@ -739,7 +776,7 @@ LRESULT CALLBACK CKinectV2Recorder::DlgProc(HWND hWnd, UINT message, WPARAM wPar
         PostQuitMessage(0);
         break;
 
-        // Handle button press
+    // Handle button press
     case WM_COMMAND:
         ProcessUI(wParam, lParam);
         break;
@@ -914,19 +951,17 @@ void CKinectV2Recorder::ProcessInfrared(INT64 nTime, const UINT16* pBuffer, int 
                 CreateDirectory(m_cSaveFolder, NULL);
             }
 
-            WCHAR szInfraredSaveFolder[MAX_PATH], szTempPath[MAX_PATH];
+            StringCchPrintfW(m_szInfraredSavePath, _countof(m_szInfraredSavePath), L"%s\\ir", m_cSaveFolder);
 
-            StringCchPrintfW(szInfraredSaveFolder, _countof(szInfraredSaveFolder), L"%s\\ir", m_cSaveFolder);
-
-            if (!IsDirectoryExists(szInfraredSaveFolder))
+            if (!IsDirectoryExists(m_szInfraredSavePath))
             {
-                CreateDirectory(szInfraredSaveFolder, NULL);
+                CreateDirectory(m_szInfraredSavePath, NULL);
             }
 
-            StringCchPrintfW(szInfraredSaveFolder, _countof(szInfraredSaveFolder), L"%s\\%011.6f.pgm", szInfraredSaveFolder, (nTime - m_nStartTime) / 10000000.);
+            StringCchPrintfW(m_szInfraredSavePath, _countof(m_szInfraredSavePath), L"%s\\%011.6f.pgm", m_szInfraredSavePath, (nTime - m_nStartTime) / 10000000.);
 
             // Write out the bitmap to disk
-            HRESULT hr = SaveToPGM(reinterpret_cast<BYTE*>(m_pInfraredUINT16), nWidth, nHeight, sizeof(UINT16)* 8, 65535, szInfraredSaveFolder);
+            m_InfraredTime = nTime - m_nStartTime;
         }
     }
 }
@@ -1020,18 +1055,17 @@ void CKinectV2Recorder::ProcessDepth(INT64 nTime, const UINT16* pBuffer, int nWi
 
         if (m_bRecord && m_nStartTime)
         {
-            WCHAR szDepthSaveFolder[MAX_PATH];
+            StringCchPrintfW(m_szDepthSavePath, _countof(m_szDepthSavePath), L"%s\\depth", m_cSaveFolder);
 
-            StringCchPrintfW(szDepthSaveFolder, _countof(szDepthSaveFolder), L"%s\\depth", m_cSaveFolder);
-
-            if (!IsDirectoryExists(szDepthSaveFolder))
+            if (!IsDirectoryExists(m_szDepthSavePath))
             {
-                CreateDirectory(szDepthSaveFolder, NULL);
+                CreateDirectory(m_szDepthSavePath, NULL);
             }
 
-            StringCchPrintfW(szDepthSaveFolder, _countof(szDepthSaveFolder), L"%s\\%011.6f.pgm", szDepthSaveFolder, (nTime - m_nStartTime) / 10000000.);
+            StringCchPrintfW(m_szDepthSavePath, _countof(m_szDepthSavePath), L"%s\\%011.6f.pgm", m_szDepthSavePath, (nTime - m_nStartTime) / 10000000.);
+            
             // Write out the bitmap to disk
-            HRESULT hr = SaveToPGM(reinterpret_cast<BYTE*>(m_pDepthUINT16), nWidth, nHeight, sizeof(UINT16)* 8, 65535, szDepthSaveFolder);
+            m_DepthTime = nTime - m_nStartTime;
         }
     }
 }
@@ -1079,8 +1113,13 @@ void CKinectV2Recorder::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, 
 #ifdef USE_IPP
         const IppiSize roiSize = { cColorWidth, cColorHeight };
         ippiMirror_8u_C4IR((Ipp8u*)pBuffer, cColorWidth * 4, roiSize, ippAxsVertical);
-        ippiCopy_8u_AC4C3R((Ipp8u*)pBuffer, cColorWidth * 4, (Ipp8u*)m_pColorRGB, cColorWidth * 3, roiSize);  // RGBA to RGB
-#else
+#ifdef COLOR_BMP
+        ippiCopy_8u_AC4C3R((Ipp8u*)pBuffer, cColorWidth * 4, (Ipp8u*)m_pColorRGB, cColorWidth * 3, roiSize);  // BGRA to BGR
+#else // COLOR_BMP
+        const int dstOrder[3] = {2, 1, 0};
+        ippiSwapChannels_8u_C4C3R((Ipp8u*)pBuffer, cColorWidth * 4, (Ipp8u*)m_pColorRGB, cColorWidth * 3, roiSize, dstOrder); // BGRA to RGB
+#endif // COLOR_BMP
+#else // USE_IPP
         RGBQUAD* pBegin = pBuffer;
         RGBQUAD* pEnd = pBuffer + cColorWidth;
         for (int i = 0; i < cColorHeight; ++i)
@@ -1097,32 +1136,40 @@ void CKinectV2Recorder::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, 
 
         while (pRGBX < pBufferEnd)
         {
+#ifdef COLOR_BMP
             pRGB->rgbtRed = pRGBX->rgbRed;
             pRGB->rgbtGreen = pRGBX->rgbGreen;
             pRGB->rgbtBlue = pRGBX->rgbBlue;
-
+#else // COLOR_BMP
+            pRGB->rgbtRed = pRGBX->rgbBlue;
+            pRGB->rgbtGreen = pRGBX->rgbGreen;
+            pRGB->rgbtBlue = pRGBX->rgbRed;
+#endif // COLOR_BMP
             ++pRGBX;
             ++pRGB;
         }
-#endif
+#endif // USE_IPP
 
         // Draw the data with Direct2D
         m_pDrawColor->Draw(reinterpret_cast<BYTE*>(pBuffer), cColorWidth * cColorHeight * sizeof(RGBQUAD));
 
         if (m_bRecord && m_nStartTime)
         {
-            WCHAR szColorSaveFolder[MAX_PATH];
+            StringCchPrintfW(m_szColorSavePath, _countof(m_szColorSavePath), L"%s\\rgb", m_cSaveFolder);
 
-            StringCchPrintfW(szColorSaveFolder, _countof(szColorSaveFolder), L"%s\\rgb", m_cSaveFolder);
-
-            if (!IsDirectoryExists(szColorSaveFolder))
+            if (!IsDirectoryExists(m_szColorSavePath))
             {
-                CreateDirectory(szColorSaveFolder, NULL);
+                CreateDirectory(m_szColorSavePath, NULL);
             }
 
-            StringCchPrintfW(szColorSaveFolder, _countof(szColorSaveFolder), L"%s\\%011.6f.bmp", szColorSaveFolder, (nTime - m_nStartTime) / 10000000.);
+#ifdef COLOR_BMP
+            StringCchPrintfW(m_szColorSavePath, _countof(m_szColorSavePath), L"%s\\%011.6f.bmp", m_szColorSavePath, (nTime - m_nStartTime) / 10000000.);
+#else // COLOR_BMP
+            StringCchPrintfW(m_szColorSavePath, _countof(m_szColorSavePath), L"%s\\%011.6f.ppm", m_szColorSavePath, (nTime - m_nStartTime) / 10000000.);
+#endif // COLOR_BMP
+
             // Write out the bitmap to disk
-            HRESULT hr = SaveToBMP(reinterpret_cast<BYTE*>(m_pColorRGB), nWidth, nHeight, sizeof(RGBTRIPLE)* 8, szColorSaveFolder);
+            m_ColorTime = nTime - m_nStartTime;
         }
     }
 }
@@ -1322,4 +1369,73 @@ bool CKinectV2Recorder::IsDirectoryExists(WCHAR* szDirName) {
         return false;
     }
     return (attribs & FILE_ATTRIBUTE_DIRECTORY);
+}
+
+/// <summary>
+/// Save images
+/// </summary>
+void CKinectV2Recorder::SaveImages()
+{
+    while (!m_StopThread)
+    {
+        if (m_InfraredTime != m_InfraredSaveTime)
+        {
+            HRESULT hr = SaveToPGM(reinterpret_cast<BYTE*>(m_pInfraredUINT16), cInfraredWidth, cInfraredHeight, sizeof(UINT16)* 8, 65535, m_szInfraredSavePath);
+            m_InfraredSaveTime = m_InfraredTime;
+            m_InfraredList.push_back(m_InfraredSaveTime);
+        }
+
+        if (m_DepthTime != m_DepthSaveTime)
+        {
+            HRESULT hr = SaveToPGM(reinterpret_cast<BYTE*>(m_pDepthUINT16), cDepthWidth, cDepthHeight, sizeof(UINT16)* 8, 65535, m_szDepthSavePath);
+            m_DepthSaveTime = m_DepthTime;
+            m_DepthList.push_back(m_DepthSaveTime);
+        }
+        
+        if (m_ColorTime != m_ColorSaveTime)
+        {
+#ifdef COLOR_BMP
+            HRESULT hr = SaveToBMP(reinterpret_cast<BYTE*>(m_pColorRGB), cColorWidth, cColorHeight, sizeof(RGBTRIPLE)* 8, m_szColorSavePath);
+#else
+            HRESULT hr = SaveToPPM(reinterpret_cast<BYTE*>(m_pColorRGB), cColorWidth, cColorHeight, sizeof(RGBTRIPLE)* 8, 255, m_szColorSavePath);
+#endif
+            m_ColorSaveTime = m_ColorTime;
+            m_ColorList.push_back(m_ColorSaveTime);
+        }
+
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
+    }
+}
+
+/// <summary>
+/// Check if we have stored all the necessary images (no frame dropping)
+/// </summary>
+void CKinectV2Recorder::CheckImages()
+{
+    int nInfraredFrameNumber = m_InfraredList.size();
+    int nDepthFrameNumber = m_DepthList.size();
+    int nColorFrameNumber = m_ColorList.size();
+
+    if (!(nInfraredFrameNumber == nDepthFrameNumber && nDepthFrameNumber == nColorFrameNumber))
+    {
+        MessageBox(NULL,
+            L"Frame dropping occured...\n",
+            L"No Good",
+            MB_OK | MB_ICONERROR
+            );
+        return;
+    }
+
+    for (int i = 0; i < nInfraredFrameNumber; ++i)
+    {
+        if (m_InfraredList[i] != m_DepthList[i] || (m_ColorList[i] - m_InfraredList[i]) > 100000)
+        {
+            MessageBox(NULL,
+                L"Frame dropping occured...\n",
+                L"No Good",
+                MB_OK | MB_ICONERROR
+                );
+            return;
+        }
+    }
 }

@@ -10,6 +10,8 @@
 
 #include "resource.h"
 #include "ImageRenderer.h"
+#include <thread>
+#include <vector>
 
 // InfraredSourceValueMaximum is the highest value that can be returned in the InfraredFrame.
 // It is cast to a float for readability in the visualization code.
@@ -85,6 +87,10 @@ public:
     /// <param name="nCmdShow"></param>
     int                     Run(HINSTANCE hInstance, int nCmdShow);
 
+    /// <summary>
+    /// Start multithreading
+    /// </summary>
+    void                    StartMultithreading();
 private:
     HWND                    m_hWnd;
     INT64                   m_nStartTime;
@@ -136,6 +142,24 @@ private:
 
     // Save folder
     WCHAR                   m_cSaveFolder[MAX_PATH];
+
+    // Multithreading
+    std::thread             m_tSaveThread;
+    bool                    m_StopThread;
+    INT64                   m_InfraredTime;
+    INT64                   m_DepthTime;
+    INT64                   m_ColorTime;
+    INT64                   m_InfraredSaveTime;
+    INT64                   m_DepthSaveTime;
+    INT64                   m_ColorSaveTime;
+    WCHAR                   m_szInfraredSavePath[MAX_PATH];
+    WCHAR                   m_szDepthSavePath[MAX_PATH];
+    WCHAR                   m_szColorSavePath[MAX_PATH];
+
+    // Check lists
+    std::vector<INT64>      m_InfraredList;
+    std::vector<INT64>      m_DepthList;
+    std::vector<INT64>      m_ColorList;
 
     /// <summary>
     /// Main processing function
@@ -236,4 +260,14 @@ private:
     /// <param name="szDirName">directory</param>
     /// <returns>indicates exists or not</returns>
     bool                    IsDirectoryExists(WCHAR* szDirName);
+
+    /// <summary>
+    /// Save images
+    /// </summary>
+    void                    SaveImages();
+
+    /// <summary>
+    /// Check if we have stored all the necessary images (no frame dropping)
+    /// </summary>
+    void                    CheckImages();
 };
