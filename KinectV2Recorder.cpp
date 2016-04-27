@@ -11,7 +11,6 @@
 #include "resource.h"
 #include "KinectV2Recorder.h"
 #include <algorithm>
-#include <thread>
 
 #ifdef USE_IPP
 #include <ippi.h>
@@ -183,11 +182,6 @@ CKinectV2Recorder::~CKinectV2Recorder()
     SafeRelease(m_pKinectSensor);
 }
 
-void test(int a)
-{
-    a = 0;
-}
-
 /// <summary>
 /// Creates the main window and begins processing
 /// </summary>
@@ -226,12 +220,7 @@ int CKinectV2Recorder::Run(HINSTANCE hInstance, int nCmdShow)
     // Main message loop
     while (WM_QUIT != msg.message)
     {
-        std::thread infrared(&CKinectV2Recorder::UpdateInfrared, this);
-        std::thread depth(&CKinectV2Recorder::UpdateDepth, this);
-        std::thread color(&CKinectV2Recorder::UpdateColor, this);
-        infrared.join();
-        depth.join();
-        color.join();
+        Update();
 
         while (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE))
         {
@@ -250,21 +239,31 @@ int CKinectV2Recorder::Run(HINSTANCE hInstance, int nCmdShow)
 }
 
 /// <summary>
-/// Main processing function for infrared frames
+/// Main processing function
 /// </summary>
-void CKinectV2Recorder::UpdateInfrared()
+void CKinectV2Recorder::Update()
 {
-    if (!m_pInfraredFrameReader)
+    if (!m_pInfraredFrameReader | !m_pDepthFrameReader | !m_pColorFrameReader)
     {
         return;
     }
 
     INT64 currentInfraredFrameTime = 0;
+    INT64 currentDepthFrameTime = 0;
+    INT64 currentColorFrameTime = 0;
+    m_bColorSynchronized = false;   // assume we are not synchronized to start with
 
     IInfraredFrame* pInfraredFrame = NULL;
+    IDepthFrame* pDepthFrame = NULL;
+    IColorFrame* pColorFrame = NULL;
+
 
     // Get an infrared frame from Kinect
     HRESULT hrInfrared = m_pInfraredFrameReader->AcquireLatestFrame(&pInfraredFrame);
+    // Get a depth frame from Kinect
+    HRESULT hrDepth = m_pDepthFrameReader->AcquireLatestFrame(&pDepthFrame);
+    // Get a color frame from Kinect
+    HRESULT hrColor = m_pColorFrameReader->AcquireLatestFrame(&pColorFrame);
 
     if (SUCCEEDED(hrInfrared))
     {
@@ -307,24 +306,6 @@ void CKinectV2Recorder::UpdateInfrared()
     }
 
     SafeRelease(pInfraredFrame);
-}
-
-/// <summary>
-/// Main processing function for depth frames
-/// </summary>
-void CKinectV2Recorder::UpdateDepth()
-{
-    if (!m_pDepthFrameReader)
-    {
-        return;
-    }
-
-    INT64 currentDepthFrameTime = 0;
-
-    IDepthFrame* pDepthFrame = NULL;
-
-    // Get a depth frame from Kinect
-    HRESULT hrDepth = m_pDepthFrameReader->AcquireLatestFrame(&pDepthFrame);
 
     if (SUCCEEDED(hrDepth))
     {
@@ -379,24 +360,6 @@ void CKinectV2Recorder::UpdateDepth()
     }
 
     SafeRelease(pDepthFrame);
-}
-
-/// <summary>
-/// Main processing function for color frames
-/// </summary>
-void CKinectV2Recorder::UpdateColor()
-{
-    if (!m_pColorFrameReader)
-    {
-        return;
-    }
-
-    INT64 currentColorFrameTime = 0;
-
-    IColorFrame* pColorFrame = NULL;
-
-    // Get a color frame from Kinect
-    HRESULT hrColor = m_pColorFrameReader->AcquireLatestFrame(&pColorFrame);
 
     if (SUCCEEDED(hrColor))
     {
@@ -720,49 +683,49 @@ LRESULT CALLBACK CKinectV2Recorder::DlgProc(HWND hWnd, UINT message, WPARAM wPar
     {
     case WM_INITDIALOG:
     {
-        // Bind application window handle
-        m_hWnd = hWnd;
+                          // Bind application window handle
+                          m_hWnd = hWnd;
 
-        InitializeUIControls();
+                          InitializeUIControls();
 
-        // Init Direct2D
-        D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &m_pD2DFactory);
+                          // Init Direct2D
+                          D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &m_pD2DFactory);
 
-        // Create and initialize a new Direct2D image renderer (take a look at ImageRenderer.h)
-        // We'll use this to draw the data we receive from the Kinect to the screen 
-        m_pDrawInfrared = new ImageRenderer();
-        HRESULT hr = m_pDrawInfrared->Initialize(GetDlgItem(m_hWnd, IDC_INFRAREDVIEW), m_pD2DFactory, cInfraredWidth, cInfraredHeight, cInfraredWidth * sizeof(RGBQUAD));
-        if (FAILED(hr))
-        {
-            SetStatusMessage(L"Failed to initialize the Direct2D draw device.", 10000, true);
-        }
+                          // Create and initialize a new Direct2D image renderer (take a look at ImageRenderer.h)
+                          // We'll use this to draw the data we receive from the Kinect to the screen 
+                          m_pDrawInfrared = new ImageRenderer();
+                          HRESULT hr = m_pDrawInfrared->Initialize(GetDlgItem(m_hWnd, IDC_INFRAREDVIEW), m_pD2DFactory, cInfraredWidth, cInfraredHeight, cInfraredWidth * sizeof(RGBQUAD));
+                          if (FAILED(hr))
+                          {
+                              SetStatusMessage(L"Failed to initialize the Direct2D draw device.", 10000, true);
+                          }
 
-        m_pDrawDepth = new ImageRenderer();
-        hr = m_pDrawDepth->Initialize(GetDlgItem(m_hWnd, IDC_DEPTHVIEW), m_pD2DFactory, cDepthWidth, cDepthHeight, cDepthWidth * sizeof(RGBQUAD));
-        if (FAILED(hr))
-        {
-            SetStatusMessage(L"Failed to initialize the Direct2D draw device.", 10000, true);
-        }
+                          m_pDrawDepth = new ImageRenderer();
+                          hr = m_pDrawDepth->Initialize(GetDlgItem(m_hWnd, IDC_DEPTHVIEW), m_pD2DFactory, cDepthWidth, cDepthHeight, cDepthWidth * sizeof(RGBQUAD));
+                          if (FAILED(hr))
+                          {
+                              SetStatusMessage(L"Failed to initialize the Direct2D draw device.", 10000, true);
+                          }
 
-        m_pDrawColor = new ImageRenderer();
-        hr = m_pDrawColor->Initialize(GetDlgItem(m_hWnd, IDC_COLORVIEW), m_pD2DFactory, cColorWidth, cColorHeight, cColorWidth * sizeof(RGBQUAD));
-        if (FAILED(hr))
-        {
-            SetStatusMessage(L"Failed to initialize the Direct2D draw device.", 10000, true);
-        }
+                          m_pDrawColor = new ImageRenderer();
+                          hr = m_pDrawColor->Initialize(GetDlgItem(m_hWnd, IDC_COLORVIEW), m_pD2DFactory, cColorWidth, cColorHeight, cColorWidth * sizeof(RGBQUAD));
+                          if (FAILED(hr))
+                          {
+                              SetStatusMessage(L"Failed to initialize the Direct2D draw device.", 10000, true);
+                          }
 
-        // Get and initialize the default Kinect sensor
-        InitializeDefaultSensor();
+                          // Get and initialize the default Kinect sensor
+                          InitializeDefaultSensor();
 
-        // Check if the necessary directories exist
-        if (!IsDirectoryExists(L"2D"))
-        {
-            CreateDirectory(L"2D", NULL);
-        }
-        if (!IsDirectoryExists(L"3D"))
-        {
-            CreateDirectory(L"3D", NULL);
-        }
+                          // Check if the necessary directories exist
+                          if (!IsDirectoryExists(L"2D"))
+                          {
+                              CreateDirectory(L"2D", NULL);
+                          }
+                          if (!IsDirectoryExists(L"3D"))
+                          {
+                              CreateDirectory(L"3D", NULL);
+                          }
     }
         break;
 

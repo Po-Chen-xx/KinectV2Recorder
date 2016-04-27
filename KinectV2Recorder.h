@@ -41,12 +41,12 @@
 class CKinectV2Recorder
 {
     static const int        cMinTimestampDifferenceForFrameReSync = 30; // The minimum timestamp difference between depth and color (in ms) at which they are considered un-synchronized.
-    static const int        cInfraredWidth  = 512;
+    static const int        cInfraredWidth = 512;
     static const int        cInfraredHeight = 424;
-    static const int        cDepthWidth     = 512;
-    static const int        cDepthHeight    = 424;
-    static const int        cColorWidth     = 1920;
-    static const int        cColorHeight    = 1080;
+    static const int        cDepthWidth = 512;
+    static const int        cDepthHeight = 424;
+    static const int        cColorWidth = 1920;
+    static const int        cColorHeight = 1080;
 public:
     /// <summary>
     /// Constructor
@@ -138,19 +138,9 @@ private:
     WCHAR                   m_cSaveFolder[MAX_PATH];
 
     /// <summary>
-    /// Main processing function for infrared frames
+    /// Main processing function
     /// </summary>
-    void                    UpdateInfrared();
-
-    /// <summary>
-    /// Main processing function for depth frames
-    /// </summary>
-    void                    UpdateDepth();
-
-    /// <summary>
-    /// Main processing function for color frames
-    /// </summary>
-    void                    UpdateColor();
+    void                    Update();
 
     /// <summary>
     /// Initialize the UI controls
@@ -247,4 +237,3 @@ private:
     /// <returns>indicates exists or not</returns>
     bool                    IsDirectoryExists(WCHAR* szDirName);
 };
-
