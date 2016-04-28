@@ -12,6 +12,8 @@
 #include "ImageRenderer.h"
 #include <thread>
 #include <vector>
+#include <queue>
+#include <fstream>
 
 // InfraredSourceValueMaximum is the highest value that can be returned in the InfraredFrame.
 // It is cast to a float for readability in the visualization code.
@@ -103,7 +105,6 @@ private:
     DWORD                   m_nDepthFramesSinceUpdate;
     DWORD                   m_nColorFramesSinceUpdate;
     bool                    m_bRecord;
-    bool                    m_bColorSynchronized;
     bool                    m_bSelect2D;
     double                  m_fInfraredFPS;
     double                  m_fDepthFPS;
@@ -125,9 +126,20 @@ private:
     RGBQUAD*                m_pInfraredRGBX;
     RGBQUAD*                m_pDepthRGBX;
     RGBQUAD*                m_pColorRGBX;
-    UINT16*                 m_pInfraredUINT16;
-    UINT16*                 m_pDepthUINT16;
-    RGBTRIPLE*              m_pColorRGB;
+
+    // Image storage
+    int                     m_nInfraredIndex;
+    int                     m_nDepthIndex;
+    int                     m_nColorIndex;
+    UINT16*                 m_pInfraredUINT16[4];
+    UINT16*                 m_pDepthUINT16[4];
+    RGBTRIPLE*              m_pColorRGB[4];
+    std::queue<UINT16*>     m_qInfraredFrameQueue;
+    std::queue<UINT16*>     m_qDepthFrameQueue;
+    std::queue<RGBTRIPLE*>  m_qColorFrameQueue;
+    std::queue<INT64>       m_qInfraredTimeQueue;
+    std::queue<INT64>       m_qDepthTimeQueue;
+    std::queue<INT64>       m_qColorTimeQueue;
 
     // Index
     UINT                    m_nModel2DIndex;
@@ -145,21 +157,12 @@ private:
 
     // Multithreading
     std::thread             m_tSaveThread;
-    bool                    m_StopThread;
-    INT64                   m_InfraredTime;
-    INT64                   m_DepthTime;
-    INT64                   m_ColorTime;
-    INT64                   m_InfraredSaveTime;
-    INT64                   m_DepthSaveTime;
-    INT64                   m_ColorSaveTime;
-    WCHAR                   m_szInfraredSavePath[MAX_PATH];
-    WCHAR                   m_szDepthSavePath[MAX_PATH];
-    WCHAR                   m_szColorSavePath[MAX_PATH];
+    bool                    m_bStopThread;
 
     // Check lists
-    std::vector<INT64>      m_InfraredList;
-    std::vector<INT64>      m_DepthList;
-    std::vector<INT64>      m_ColorList;
+    std::vector<INT64>      m_vInfraredList;
+    std::vector<INT64>      m_vDepthList;
+    std::vector<INT64>      m_vColorList;
 
     /// <summary>
     /// Main processing function
