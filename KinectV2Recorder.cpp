@@ -93,7 +93,7 @@ m_bStopThread(false)
     // create heap storage for color pixel data in RGBX format
     m_pColorRGBX = new RGBQUAD[cColorWidth * cColorHeight];
 
-    for (int i = 0; i < 4; ++i)
+    for (int i = 0; i < BufferSize; ++i)
     {
         // create heap storage for infrared pixel data in UINT16 format
         m_pInfraredUINT16[i] = new UINT16[cInfraredWidth * cInfraredHeight];
@@ -154,7 +154,7 @@ CKinectV2Recorder::~CKinectV2Recorder()
         m_pColorRGBX = NULL;
     }
 
-    for (int i = 0; i < 4; ++i)
+    for (int i = 0; i < BufferSize; ++i)
     {
         if (m_pInfraredUINT16[i])
         {
@@ -881,7 +881,7 @@ void CKinectV2Recorder::ProcessInfrared(INT64 nTime, const UINT16* pBuffer, int 
 
     if (m_pInfraredRGBX && pBuffer && (nWidth == cInfraredWidth) && (nHeight == cInfraredHeight))
     {
-        INT64 index = m_nInfraredIndex % 4;
+        INT64 index = m_nInfraredIndex % BufferSize;
         RGBQUAD* pRGBX = m_pInfraredRGBX;
         UINT16* pUINT16 = m_pInfraredUINT16[index];
         pBuffer += cInfraredWidth - 1;
@@ -993,7 +993,7 @@ void CKinectV2Recorder::ProcessDepth(INT64 nTime, const UINT16* pBuffer, int nWi
     // Make sure we've received valid data
     if (m_pDepthRGBX && pBuffer && (nWidth == cDepthWidth) && (nHeight == cDepthHeight))
     {
-        INT64 index = m_nDepthIndex % 4;
+        INT64 index = m_nDepthIndex % BufferSize;
         RGBQUAD* pRGBX = m_pDepthRGBX;
         UINT16* pUINT16 = m_pDepthUINT16[index];
         pBuffer += cDepthWidth - 1;
@@ -1090,7 +1090,7 @@ void CKinectV2Recorder::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, 
     // Make sure we've received valid data
     if (pBuffer && (nWidth == cColorWidth) && (nHeight == cColorHeight))
     {
-        INT64 index = m_nColorIndex % 4;
+        INT64 index = m_nColorIndex % BufferSize;
         RGBQUAD* pRGBX = pBuffer;
         RGBTRIPLE* pRGB = m_pColorRGB[index];
 
@@ -1098,7 +1098,7 @@ void CKinectV2Recorder::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, 
         const IppiSize roiSize = { cColorWidth, cColorHeight };
         ippiMirror_8u_C4IR((Ipp8u*)pRGBX, cColorWidth * 4, roiSize, ippAxsVertical);
 #ifdef COLOR_BMP
-        ippiCopy_8u_AC4C3R((Ipp8u*)pBuffer, cColorWidth * 4, (Ipp8u*)m_pColorRGB, cColorWidth * 3, roiSize);  // BGRA to BGR
+        ippiCopy_8u_AC4C3R((Ipp8u*)pBuffer, cColorWidth * 4, (Ipp8u*)pRGB, cColorWidth * 3, roiSize);  // BGRA to BGR
 #else // COLOR_BMP
         const int dstOrder[3] = {2, 1, 0};
         ippiSwapChannels_8u_C4C3R((Ipp8u*)pRGBX, cColorWidth * 4, (Ipp8u*)pRGB, cColorWidth * 3, roiSize, dstOrder); // BGRA to RGB
