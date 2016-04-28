@@ -1428,7 +1428,7 @@ void CKinectV2Recorder::CheckImages()
 
     for (int i = 0; i < nInfraredFrameNumber; ++i)
     {
-        if (m_InfraredList[i] != m_DepthList[i] || (m_ColorList[i] - m_InfraredList[i]) > 100000)
+        if (m_InfraredList[i] != m_DepthList[i] || abs(m_ColorList[i] - m_InfraredList[i]) > 100000)
         {
             MessageBox(NULL,
                 L"Frame dropping occured...\n",
