@@ -42,6 +42,9 @@
 /// hard coded, as was done here, or calculated at runtime.
 #define InfraredSceneStandardDeviations 3.0f
 
+/// The BufferSize value specifies the size of buffer when writing image
+#define BufferSize 16
+
 class CKinectV2Recorder
 {
     static const int        cMinTimestampDifferenceForFrameReSync = 30; // The minimum timestamp difference between depth and color (in ms) at which they are considered un-synchronized.
@@ -131,9 +134,9 @@ private:
     int                     m_nInfraredIndex;
     int                     m_nDepthIndex;
     int                     m_nColorIndex;
-    UINT16*                 m_pInfraredUINT16[4];
-    UINT16*                 m_pDepthUINT16[4];
-    RGBTRIPLE*              m_pColorRGB[4];
+    UINT16*                 m_pInfraredUINT16[BufferSize];
+    UINT16*                 m_pDepthUINT16[BufferSize];
+    RGBTRIPLE*              m_pColorRGB[BufferSize];
     std::queue<UINT16*>     m_qInfraredFrameQueue;
     std::queue<UINT16*>     m_qDepthFrameQueue;
     std::queue<RGBTRIPLE*>  m_qColorFrameQueue;
