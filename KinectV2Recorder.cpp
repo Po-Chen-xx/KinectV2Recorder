@@ -885,7 +885,7 @@ void CKinectV2Recorder::ProcessInfrared(INT64 nTime, const UINT16* pBuffer, int 
             {
                 ResetRecordParameters();
                 MessageBox(NULL,
-                    L"Frame dropping occured...\n",
+                    L"Infrared frame dropping occured...\n",
                     L"No Good",
                     MB_OK | MB_ICONERROR
                     );
@@ -1014,7 +1014,7 @@ void CKinectV2Recorder::ProcessDepth(INT64 nTime, const UINT16* pBuffer, int nWi
             {
                 ResetRecordParameters();
                 MessageBox(NULL,
-                    L"Frame dropping occured...\n",
+                    L"Depth frame dropping occured...\n",
                     L"No Good",
                     MB_OK | MB_ICONERROR
                     );
@@ -1124,11 +1124,11 @@ void CKinectV2Recorder::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, 
             m_nColorFramesSinceUpdate = 0;
             m_fColorFPS = fps;
 #ifdef VERBOSE
-            if (m_bRecord && m_fDepthFPS < 29.5)
+            if (m_bRecord && m_fColorFPS < 29.5)
             {
                 ResetRecordParameters();
                 MessageBox(NULL,
-                    L"Frame dropping occured...\n",
+                    L"Color frame dropping occured...\n",
                     L"No Good",
                     MB_OK | MB_ICONERROR
                     );
