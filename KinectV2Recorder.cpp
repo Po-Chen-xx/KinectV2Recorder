@@ -651,6 +651,7 @@ void CKinectV2Recorder::ProcessUI(WPARAM wParam, LPARAM)
     {
         if (m_bRecord)
         {
+            m_bRecord = false;
 #ifdef VERBOSE
             CheckImages();
 #endif
