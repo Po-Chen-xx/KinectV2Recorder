@@ -1556,7 +1556,7 @@ void CKinectV2Recorder::SaveShotImages()
 
         WCHAR szStatusMessage[128];
         StringCchPrintfW(szStatusMessage, _countof(szStatusMessage), L"Take a shot   [%s\\xxx\\%s.xxx]", szCalibrationFolder, FileName);
-        SetStatusMessage(szStatusMessage, 1000, true);
+        SetStatusMessage(szStatusMessage, 3000, true);
     }
 }
 
