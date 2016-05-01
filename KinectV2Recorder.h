@@ -108,10 +108,15 @@ private:
     DWORD                   m_nDepthFramesSinceUpdate;
     DWORD                   m_nColorFramesSinceUpdate;
     bool                    m_bRecord;
+    bool                    m_bShot;
+    bool                    m_bShotReady;
     bool                    m_bSelect2D;
     double                  m_fInfraredFPS;
     double                  m_fDepthFPS;
     double                  m_fColorFPS;
+    INT64                   m_nInfraredShotTime;
+    INT64                   m_nDepthShotTime;
+    INT64                   m_nColorShotTime;
 
     // Current Kinect
     IKinectSensor*          m_pKinectSensor;
@@ -154,6 +159,7 @@ private:
     // Icon handle
     HANDLE                  m_hRecord;
     HANDLE                  m_hStop;
+    HANDLE                  m_hShot;
 
     // Save folder
     WCHAR                   m_cSaveFolder[MAX_PATH];
@@ -268,12 +274,22 @@ private:
     bool                    IsDirectoryExists(WCHAR* szDirName);
 
     /// <summary>
-    /// Save images
+    /// Save record images
     /// </summary>
-    void                    SaveImages();
+    void                    SaveRecordImages();
+
+    /// <summary>
+    /// Save shot images
+    /// </summary>
+    void                    SaveShotImages();
 
     /// <summary>
     /// Check if we have stored all the necessary images (no frame dropping)
     /// </summary>
     void                    CheckImages();
+
+    /// <summary>
+    /// Reset record parameters
+    /// </summary>
+    void                    ResetRecordParameters();
 };

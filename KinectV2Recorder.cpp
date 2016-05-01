@@ -55,6 +55,8 @@ m_nColorFramesSinceUpdate(0),
 m_fFreq(0),
 m_nNextStatusTime(0LL),
 m_bRecord(false),
+m_bShot(false),
+m_bShotReady(false),
 m_bSelect2D(true),
 m_pKinectSensor(NULL),
 m_pInfraredFrameReader(NULL),
@@ -260,7 +262,7 @@ int CKinectV2Recorder::Run(HINSTANCE hInstance, int nCmdShow)
 /// </summary>
 void CKinectV2Recorder::StartMultithreading()
 {
-    m_tSaveThread = std::thread(&CKinectV2Recorder::SaveImages, this);
+    m_tSaveThread = std::thread(&CKinectV2Recorder::SaveRecordImages, this);
 }
 
 /// <summary>
@@ -500,7 +502,9 @@ void CKinectV2Recorder::InitializeUIControls()
     // Set button icons
     m_hRecord = LoadImage(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_RECORD), IMAGE_ICON, 128, 128, LR_DEFAULTCOLOR);
     m_hStop = LoadImage(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_STOP), IMAGE_ICON, 128, 128, LR_DEFAULTCOLOR);
+    m_hShot = LoadImage(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_SHOT), IMAGE_ICON, 27, 18, LR_DEFAULTCOLOR);
     SendDlgItemMessage(m_hWnd, IDC_BUTTON_RECORD, BM_SETIMAGE, (WPARAM)IMAGE_ICON, (LPARAM)m_hRecord);
+    SendDlgItemMessage(m_hWnd, IDC_BUTTON_SHOT, BM_SETIMAGE, (WPARAM)IMAGE_ICON, (LPARAM)m_hShot);
 
     // Set save folder
     StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"2D//wi_tr_1");
@@ -642,27 +646,27 @@ void CKinectV2Recorder::ProcessUI(WPARAM wParam, LPARAM)
     StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L" Save Folder: %s    FPS(Infrared, Depth, Color) = (%0.2f,  %0.2f,  %0.2f)", m_cSaveFolder, m_fInfraredFPS, m_fDepthFPS, m_fColorFPS);
     SetStatusMessage(szStatusMessage, 500, true);
 
-    // If it was for the record control and a button clicked event, save the video sequences
+    // If it is a record control and a button clicked event, save the video sequences
     if (IDC_BUTTON_RECORD == LOWORD(wParam) && BN_CLICKED == HIWORD(wParam))
     {
         if (m_bRecord)
         {
+#ifdef VERBOSE
             CheckImages();
-            m_nInfraredIndex = 0;
-            m_nDepthIndex = 0;
-            m_nColorIndex = 0;
-            m_vInfraredList.resize(0);
-            m_vDepthList.resize(0);
-            m_vColorList.resize(0);
-            m_bRecord = false;
-            m_nStartTime = 0;
-            SendDlgItemMessage(m_hWnd, IDC_BUTTON_RECORD, BM_SETIMAGE, (WPARAM)IMAGE_ICON, (LPARAM)m_hRecord);
+#endif
+            ResetRecordParameters();
         }
         else
         {
             m_bRecord = true;
             SendDlgItemMessage(m_hWnd, IDC_BUTTON_RECORD, BM_SETIMAGE, (WPARAM)IMAGE_ICON, (LPARAM)m_hStop);
         }
+    }
+
+    // If it is a shot control and a button clicked event, save the camera images
+    if (IDC_BUTTON_SHOT == LOWORD(wParam) && BN_CLICKED == HIWORD(wParam))
+    {
+        m_bShot = true;
     }
 }
 
@@ -876,6 +880,18 @@ void CKinectV2Recorder::ProcessInfrared(INT64 nTime, const UINT16* pBuffer, int 
             m_nInfraredLastCounter = qpcNow.QuadPart;
             m_nInfraredFramesSinceUpdate = 0;
             m_fInfraredFPS = fps;
+#ifdef VERBOSE
+            if (m_bRecord && m_fInfraredFPS < 29.5)
+            {
+                ResetRecordParameters();
+                MessageBox(NULL,
+                    L"Frame dropping occured...\n",
+                    L"No Good",
+                    MB_OK | MB_ICONERROR
+                    );
+                return;
+            }
+#endif
         }
     }
 
@@ -948,6 +964,12 @@ void CKinectV2Recorder::ProcessInfrared(INT64 nTime, const UINT16* pBuffer, int 
 
             ++m_nInfraredIndex;
         }
+
+        if (m_bShot)
+        {
+            m_nInfraredShotTime = nTime;
+            m_bShotReady = true;
+        }
     }
 }
 
@@ -987,6 +1009,18 @@ void CKinectV2Recorder::ProcessDepth(INT64 nTime, const UINT16* pBuffer, int nWi
             m_nDepthLastCounter = qpcNow.QuadPart;
             m_nDepthFramesSinceUpdate = 0;
             m_fDepthFPS = fps;
+#ifdef VERBOSE
+            if (m_bRecord && m_fDepthFPS < 29.5)
+            {
+                ResetRecordParameters();
+                MessageBox(NULL,
+                    L"Frame dropping occured...\n",
+                    L"No Good",
+                    MB_OK | MB_ICONERROR
+                    );
+                return;
+            }
+#endif
         }
     }
 
@@ -1047,6 +1081,11 @@ void CKinectV2Recorder::ProcessDepth(INT64 nTime, const UINT16* pBuffer, int nWi
 
             ++m_nDepthIndex;
         }
+
+        if (m_bShotReady)
+        {
+            m_nDepthShotTime = nTime;
+        }
     }
 }
 
@@ -1084,6 +1123,18 @@ void CKinectV2Recorder::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, 
             m_nColorLastCounter = qpcNow.QuadPart;
             m_nColorFramesSinceUpdate = 0;
             m_fColorFPS = fps;
+#ifdef VERBOSE
+            if (m_bRecord && m_fDepthFPS < 29.5)
+            {
+                ResetRecordParameters();
+                MessageBox(NULL,
+                    L"Frame dropping occured...\n",
+                    L"No Good",
+                    MB_OK | MB_ICONERROR
+                    );
+                return;
+            }
+#endif
         }
     }
 
@@ -1142,6 +1193,17 @@ void CKinectV2Recorder::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, 
             m_qColorFrameQueue.push(m_pColorRGB[index]);
 
             ++m_nColorIndex;
+        }
+
+        if (m_bShotReady)
+        {
+            m_nColorShotTime = nTime;
+            if (m_nInfraredShotTime == m_nDepthShotTime || abs(m_nColorShotTime - m_nDepthShotTime) < 100000)
+            {
+                SaveShotImages();
+                m_bShot = false;
+                m_bShotReady = false;
+            }
         }
     }
 }
@@ -1344,9 +1406,9 @@ bool CKinectV2Recorder::IsDirectoryExists(WCHAR* szDirName) {
 }
 
 /// <summary>
-/// Save images
+/// Save record images
 /// </summary>
-void CKinectV2Recorder::SaveImages()
+void CKinectV2Recorder::SaveRecordImages()
 {
     while (!m_bStopThread)
     {
@@ -1372,7 +1434,7 @@ void CKinectV2Recorder::SaveImages()
             INT64 nTime = m_qInfraredTimeQueue.front();
             StringCchPrintfW(szSavePath, _countof(szSavePath), L"%s\\%011.6f.pgm", szSavePath, nTime / 10000000.);
 
-            HRESULT hr = SaveToPGM(reinterpret_cast<BYTE*>(m_qInfraredFrameQueue.front()), cInfraredWidth, cInfraredHeight, sizeof(UINT16)* 8, 65535, szSavePath);
+            SaveToPGM(reinterpret_cast<BYTE*>(m_qInfraredFrameQueue.front()), cInfraredWidth, cInfraredHeight, sizeof(UINT16)* 8, 65535, szSavePath);
            
             m_vInfraredList.push_back(nTime);
 
@@ -1393,7 +1455,7 @@ void CKinectV2Recorder::SaveImages()
             INT64 nTime = m_qDepthTimeQueue.front();
             StringCchPrintfW(szSavePath, _countof(szSavePath), L"%s\\%011.6f.pgm", szSavePath, nTime / 10000000.);
 
-            HRESULT hr = SaveToPGM(reinterpret_cast<BYTE*>(m_qDepthFrameQueue.front()), cDepthWidth, cDepthHeight, sizeof(UINT16)* 8, 65535, szSavePath);
+            SaveToPGM(reinterpret_cast<BYTE*>(m_qDepthFrameQueue.front()), cDepthWidth, cDepthHeight, sizeof(UINT16)* 8, 65535, szSavePath);
 
             m_vDepthList.push_back(nTime);
 
@@ -1414,10 +1476,10 @@ void CKinectV2Recorder::SaveImages()
             INT64 nTime = m_qColorTimeQueue.front();
 #ifdef COLOR_BMP
             StringCchPrintfW(szSavePath, _countof(szSavePath), L"%s\\%011.6f.bmp", szSavePath, nTime / 10000000.);
-            HRESULT hr = SaveToBMP(reinterpret_cast<BYTE*>(m_qColorFrameQueue.front()), cColorWidth, cColorHeight, sizeof(RGBTRIPLE)* 8, szSavePath);
+            SaveToBMP(reinterpret_cast<BYTE*>(m_qColorFrameQueue.front()), cColorWidth, cColorHeight, sizeof(RGBTRIPLE)* 8, szSavePath);
 #else
             StringCchPrintfW(szSavePath, _countof(szSavePath), L"%s\\%011.6f.ppm", szSavePath, nTime / 10000000.);
-            HRESULT hr = SaveToPPM(reinterpret_cast<BYTE*>(m_qColorFrameQueue.front()), cColorWidth, cColorHeight, sizeof(RGBTRIPLE)* 8, 255, szSavePath);
+            SaveToPPM(reinterpret_cast<BYTE*>(m_qColorFrameQueue.front()), cColorWidth, cColorHeight, sizeof(RGBTRIPLE)* 8, 255, szSavePath);
 #endif
             m_vColorList.push_back(nTime);
 
@@ -1426,6 +1488,75 @@ void CKinectV2Recorder::SaveImages()
         }
 
         std::this_thread::sleep_for(std::chrono::microseconds(100));
+    }
+}
+
+/// <summary>
+/// Save shot images
+/// </summary>
+void CKinectV2Recorder::SaveShotImages()
+{
+    WCHAR* szPicturesFolder = NULL;
+    HRESULT hr = SHGetKnownFolderPath(FOLDERID_Pictures, 0, NULL, &szPicturesFolder);
+
+    if (SUCCEEDED(hr))
+    {
+        WCHAR szCalibrationFolder[MAX_PATH];
+        WCHAR szInfraredFolder[MAX_PATH];
+        WCHAR szDepthFolder[MAX_PATH];
+        WCHAR szColorFolder[MAX_PATH];
+        WCHAR FileName[MAX_PATH];
+        StringCchPrintfW(szCalibrationFolder, _countof(szCalibrationFolder), L"%s\\calibration", szPicturesFolder);
+        if (!IsDirectoryExists(szCalibrationFolder))
+        {
+            CreateDirectory(szCalibrationFolder, NULL);
+        }
+        GetTimeFormatEx(NULL, 0, NULL, L"HH'-'mm'-'ss", FileName, _countof(FileName));
+
+        // Save infrared image
+        StringCchPrintfW(szInfraredFolder, _countof(szInfraredFolder), L"%s\\ir", szCalibrationFolder);
+        if (!IsDirectoryExists(szInfraredFolder))
+        {
+            CreateDirectory(szInfraredFolder, NULL);
+        }
+        WCHAR szInfraredPath[MAX_PATH];
+        StringCchPrintfW(szInfraredPath, _countof(szInfraredPath), L"%s\\%s.pgm", szInfraredFolder, FileName);
+        SaveToPGM(reinterpret_cast<BYTE*>(m_pInfraredUINT16[0]), cInfraredWidth, cInfraredHeight, sizeof(UINT16)* 8, 65535, szInfraredPath);
+
+        // Save depth image
+        StringCchPrintfW(szDepthFolder, _countof(szDepthFolder), L"%s\\depth", szCalibrationFolder);
+        if (!IsDirectoryExists(szDepthFolder))
+        {
+            CreateDirectory(szDepthFolder, NULL);
+        }
+        WCHAR szDepthPath[MAX_PATH];
+        StringCchPrintfW(szDepthPath, _countof(szDepthPath), L"%s\\%s.pgm", szDepthFolder, FileName);
+        SaveToPGM(reinterpret_cast<BYTE*>(m_pDepthUINT16[0]), cDepthWidth, cDepthHeight, sizeof(UINT16)* 8, 65535, szDepthPath);
+    
+        // Save Color image
+        StringCchPrintfW(szColorFolder, _countof(szColorFolder), L"%s\\color", szCalibrationFolder);
+        if (!IsDirectoryExists(szColorFolder))
+        {
+            CreateDirectory(szColorFolder, NULL);
+        }
+        WCHAR szColorPath[MAX_PATH];
+        StringCchPrintfW(szColorPath, _countof(szColorPath), L"%s\\%s.bmp", szColorFolder, FileName);
+#ifndef COLOR_BMP
+        RGBTRIPLE* pBuffer = m_pColorRGB[0];
+        // end pixel is start + width*height - 1
+        const RGBTRIPLE* pBufferEnd = pBuffer + (cColorWidth * cColorHeight);
+
+        while (pBuffer < pBufferEnd)
+        {
+            std::swap(pBuffer->rgbtRed, pBuffer->rgbtBlue);
+            ++pBuffer;
+        }
+#endif
+        SaveToBMP(reinterpret_cast<BYTE*>(m_pColorRGB[0]), cColorWidth, cColorHeight, sizeof(RGBTRIPLE)* 8, szColorPath);
+
+        WCHAR szStatusMessage[128];
+        StringCchPrintfW(szStatusMessage, _countof(szStatusMessage), L"Take a shot -> %s", FileName);
+        SetStatusMessage(szStatusMessage, 1000, true);
     }
 }
 
@@ -1464,4 +1595,20 @@ void CKinectV2Recorder::CheckImages()
             return;
         }
     }
+}
+
+/// <summary>
+/// Reset record parameters
+/// </summary>
+void CKinectV2Recorder::ResetRecordParameters()
+{
+    m_nInfraredIndex = 0;
+    m_nDepthIndex = 0;
+    m_nColorIndex = 0;
+    m_vInfraredList.resize(0);
+    m_vDepthList.resize(0);
+    m_vColorList.resize(0);
+    m_bRecord = false;
+    m_nStartTime = 0;
+    SendDlgItemMessage(m_hWnd, IDC_BUTTON_RECORD, BM_SETIMAGE, (WPARAM)IMAGE_ICON, (LPARAM)m_hRecord);
 }

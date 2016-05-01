@@ -12,6 +12,7 @@
 #define IDI_APP                         100
 #define IDI_RECORD                      101
 #define IDI_STOP                        102
+#define IDI_SHOT                        103
 #define IDD_APP                         110
 #define IDC_COLORVIEW                   1001
 #define IDC_DEPTHVIEW                   1002
@@ -29,6 +30,7 @@
 #define IDC_SIDE_CBO                    1014
 #define IDC_STATUS                      1015
 #define IDC_BUTTON_RECORD               1016
+#define IDC_BUTTON_SHOT                 1017
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
