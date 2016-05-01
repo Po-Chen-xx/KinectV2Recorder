@@ -1555,7 +1555,7 @@ void CKinectV2Recorder::SaveShotImages()
         SaveToBMP(reinterpret_cast<BYTE*>(m_pColorRGB[0]), cColorWidth, cColorHeight, sizeof(RGBTRIPLE)* 8, szColorPath);
 
         WCHAR szStatusMessage[128];
-        StringCchPrintfW(szStatusMessage, _countof(szStatusMessage), L"Take a shot -> %s", FileName);
+        StringCchPrintfW(szStatusMessage, _countof(szStatusMessage), L"Take a shot   [%s\\xxx\\%s.xxx]", szCalibrationFolder, FileName);
         SetStatusMessage(szStatusMessage, 1000, true);
     }
 }
