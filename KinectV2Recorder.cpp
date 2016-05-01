@@ -1611,5 +1611,29 @@ void CKinectV2Recorder::ResetRecordParameters()
     m_vColorList.resize(0);
     m_bRecord = false;
     m_nStartTime = 0;
+    while (!m_qInfraredFrameQueue.empty())
+    {
+        m_qInfraredFrameQueue.pop();
+    }
+    while (!m_qDepthFrameQueue.empty())
+    {
+        m_qDepthFrameQueue.pop();
+    }
+    while (!m_qColorFrameQueue.empty())
+    {
+        m_qColorFrameQueue.pop();
+    }
+    while (!m_qInfraredTimeQueue.empty())
+    {
+        m_qInfraredTimeQueue.pop();
+    }
+    while (!m_qDepthTimeQueue.empty())
+    {
+        m_qDepthTimeQueue.pop();
+    }
+    while (!m_qColorTimeQueue.empty())
+    {
+        m_qColorTimeQueue.pop();
+    }
     SendDlgItemMessage(m_hWnd, IDC_BUTTON_RECORD, BM_SETIMAGE, (WPARAM)IMAGE_ICON, (LPARAM)m_hRecord);
 }
