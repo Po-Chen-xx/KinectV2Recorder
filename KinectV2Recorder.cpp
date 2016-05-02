@@ -1411,13 +1411,16 @@ void CKinectV2Recorder::SaveRecordImages()
         bool bColorWrite = !m_qColorFrameQueue.empty();
 
         // Check if the necessary directories exist
-        if (!IsDirectoryExists(m_cModelFolder))
+        if ((bInfraredWrite || bDepthWrite || bColorWrite))
         {
-            CreateDirectory(m_cModelFolder, NULL);
-        }
-        if ((bInfraredWrite || bDepthWrite || bColorWrite) && !IsDirectoryExists(m_cSaveFolder))
-        {
-            CreateDirectory(m_cSaveFolder, NULL);
+            if (!IsDirectoryExists(m_cModelFolder))
+            {
+                CreateDirectory(m_cModelFolder, NULL);
+            }
+            if (!IsDirectoryExists(m_cSaveFolder))
+            {
+                CreateDirectory(m_cSaveFolder, NULL);
+            }
         }
 
         if (bInfraredWrite)
