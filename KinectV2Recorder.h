@@ -163,6 +163,7 @@ private:
 
     // Save folder
     WCHAR                   m_cSaveFolder[MAX_PATH];
+    WCHAR                   m_cModelFolder[MAX_PATH];
 
     // Multithreading
     std::thread             m_tSaveThread;

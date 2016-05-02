@@ -506,7 +506,8 @@ void CKinectV2Recorder::InitializeUIControls()
     SendDlgItemMessage(m_hWnd, IDC_BUTTON_RECORD, BM_SETIMAGE, (WPARAM)IMAGE_ICON, (LPARAM)m_hRecord);
     SendDlgItemMessage(m_hWnd, IDC_BUTTON_SHOT, BM_SETIMAGE, (WPARAM)IMAGE_ICON, (LPARAM)m_hShot);
 
-    // Set save folder
+    // Set sfolder
+    StringCchPrintf(m_cModelFolder, _countof(m_cModelFolder), L"2D");
     StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"2D//wi_tr_1");
 }
 
@@ -590,6 +591,7 @@ void CKinectV2Recorder::ProcessUI(WPARAM wParam, LPARAM)
 
     if (m_bSelect2D)
     {
+        StringCchPrintf(m_cModelFolder, _countof(m_cModelFolder), L"2D");
         switch (m_nModel2DIndex)
         {
         case 0: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"2D\\wi"); break;
@@ -601,6 +603,7 @@ void CKinectV2Recorder::ProcessUI(WPARAM wParam, LPARAM)
         }
     }
     else{
+        StringCchPrintf(m_cModelFolder, _countof(m_cModelFolder), L"3D");
         switch (m_nModel3DIndex)
         {
         case 0: StringCchPrintf(m_cSaveFolder, _countof(m_cSaveFolder), L"3D\\so"); break;
@@ -751,16 +754,6 @@ LRESULT CALLBACK CKinectV2Recorder::DlgProc(HWND hWnd, UINT message, WPARAM wPar
 
         // Get and initialize the default Kinect sensor
         InitializeDefaultSensor();
-
-        // Check if the necessary directories exist
-        if (!IsDirectoryExists(L"2D"))
-        {
-            CreateDirectory(L"2D", NULL);
-        }
-        if (!IsDirectoryExists(L"3D"))
-        {
-            CreateDirectory(L"3D", NULL);
-        }
 
         StartMultithreading();
     }
@@ -1417,6 +1410,11 @@ void CKinectV2Recorder::SaveRecordImages()
         bool bDepthWrite = !m_qDepthFrameQueue.empty();
         bool bColorWrite = !m_qColorFrameQueue.empty();
 
+        // Check if the necessary directories exist
+        if (!IsDirectoryExists(m_cModelFolder))
+        {
+            CreateDirectory(m_cModelFolder, NULL);
+        }
         if ((bInfraredWrite || bDepthWrite || bColorWrite) && !IsDirectoryExists(m_cSaveFolder))
         {
             CreateDirectory(m_cSaveFolder, NULL);
