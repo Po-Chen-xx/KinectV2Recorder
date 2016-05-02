@@ -1612,12 +1612,30 @@ void CKinectV2Recorder::ResetRecordParameters()
     m_vColorList.resize(0);
     m_bRecord = false;
     m_nStartTime = 0;
-    m_qInfraredFrameQueue = std::queue<UINT16*>();
-    m_qDepthFrameQueue = std::queue<UINT16*>();
-    m_qColorFrameQueue = std::queue<RGBTRIPLE*>();
-    m_qInfraredTimeQueue = std::queue<INT64>();
-    m_qDepthTimeQueue = std::queue<INT64>();
-    m_qColorTimeQueue = std::queue<INT64>();
+    while (!m_qInfraredFrameQueue.empty())
+    {
+        m_qInfraredFrameQueue.pop();
+    }
+    while (!m_qDepthFrameQueue.empty())
+    {
+        m_qDepthFrameQueue.pop();
+    }
+    while (!m_qColorFrameQueue.empty())
+    {
+        m_qColorFrameQueue.pop();
+    }
+    while (!m_qInfraredTimeQueue.empty())
+    {
+        m_qInfraredTimeQueue.pop();
+    }
+    while (!m_qDepthTimeQueue.empty())
+    {
+        m_qDepthTimeQueue.pop();
+    }
+    while (!m_qColorTimeQueue.empty())
+    {
+        m_qColorTimeQueue.pop();
+    }
 
     SendDlgItemMessage(m_hWnd, IDC_BUTTON_RECORD, BM_SETIMAGE, (WPARAM)IMAGE_ICON, (LPARAM)m_hRecord);
 }
