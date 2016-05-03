@@ -43,7 +43,7 @@
 #define InfraredSceneStandardDeviations 3.0f
 
 /// The BufferSize value specifies the size of buffer when writing image
-#define BufferSize 16
+#define BufferSize 32
 
 class CKinectV2Recorder
 {

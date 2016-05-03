@@ -654,7 +654,6 @@ void CKinectV2Recorder::ProcessUI(WPARAM wParam, LPARAM)
     {
         if (m_bRecord)
         {
-            m_bRecord = false;
 #ifdef VERBOSE
             CheckImages();
 #endif
@@ -1567,6 +1566,7 @@ void CKinectV2Recorder::SaveShotImages()
 /// </summary>
 void CKinectV2Recorder::CheckImages()
 {
+    m_bRecord = false;
     while (!m_qInfraredFrameQueue.empty() || !m_qDepthFrameQueue.empty() || !m_qColorFrameQueue.empty())
     {
         std::this_thread::sleep_for(std::chrono::microseconds(33));
@@ -1604,38 +1604,19 @@ void CKinectV2Recorder::CheckImages()
 /// </summary>
 void CKinectV2Recorder::ResetRecordParameters()
 {
+    m_bRecord = false;
+    while (!m_qInfraredFrameQueue.empty() || !m_qDepthFrameQueue.empty() || !m_qColorFrameQueue.empty())
+    {
+        std::this_thread::sleep_for(std::chrono::microseconds(33));
+    }
     m_nInfraredIndex = 0;
     m_nDepthIndex = 0;
     m_nColorIndex = 0;
     m_vInfraredList.resize(0);
     m_vDepthList.resize(0);
     m_vColorList.resize(0);
-    m_bRecord = false;
     m_nStartTime = 0;
-    while (!m_qInfraredFrameQueue.empty())
-    {
-        m_qInfraredFrameQueue.pop();
-    }
-    while (!m_qDepthFrameQueue.empty())
-    {
-        m_qDepthFrameQueue.pop();
-    }
-    while (!m_qColorFrameQueue.empty())
-    {
-        m_qColorFrameQueue.pop();
-    }
-    while (!m_qInfraredTimeQueue.empty())
-    {
-        m_qInfraredTimeQueue.pop();
-    }
-    while (!m_qDepthTimeQueue.empty())
-    {
-        m_qDepthTimeQueue.pop();
-    }
-    while (!m_qColorTimeQueue.empty())
-    {
-        m_qColorTimeQueue.pop();
-    }
+    
 
     SendDlgItemMessage(m_hWnd, IDC_BUTTON_RECORD, BM_SETIMAGE, (WPARAM)IMAGE_ICON, (LPARAM)m_hRecord);
 }
