@@ -32,7 +32,7 @@ The system requirements for Kinect V2 according to [MSDN](https://msdn.microsoft
 * (Optional) Use **RAM Disk** if SSD isn't fast enough ([download](https://www.softperfect.com/products/ramdisk/))
 
 ### Program Description
-Color images are stored in **PPM** (or **BMP** by #define COLOR_BMP) format (24 bits per pixel). Depth and infrared images are stored in **PGM** format (16 bits per pixel). D2D is used to achieve real-time display. Intel IPP is further used in regards to optimization. To enable using IPP, please following the project setup showed below.
+Kinect V2 Recorder is used to record image sequences at 30 fps (or just take pictures) with Kinect V2. Color images are stored in **PPM** (or **BMP** by #define COLOR_BMP) format (24 bits per pixel). Depth and infrared images are stored in **PGM** format (16 bits per pixel). D2D is used to achieve real-time display. Intel IPP is further used in regards to optimization. To enable using IPP, please following the project setup showed below.
 
 ![alt tag](https://raw.githubusercontent.com/Po-Chen/KinectV2Recorder/master/image/UseIntelIPP.png)
 
